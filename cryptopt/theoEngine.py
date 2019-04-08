@@ -9,7 +9,7 @@ class TheoEngine:
                  underlying_price=None,
                  expirations=[],
                  strikes={},
-                 atm_volatility=None,
+                 atm_volatility=0.5,
                  interest_rate=0):
         self.underlying_pair = underlying_pair
         self.underlying_price = underlying_price
@@ -17,6 +17,7 @@ class TheoEngine:
         self.strikes = {e: strikes for e in self.expirations}
         self.atm_volatility = atm_volatility
         self.interest_rate = interest_rate
+        self.currency = self.underlying_pair.split('/')[0]
         self.time = pytz.timezone('UTC').localize(datetime.datetime.now())
         self.options = {
             'call': {},
@@ -96,8 +97,9 @@ class TheoEngine:
                     option.calc_wvega(atm_vega)
 
     def build_deribit_options(self):
-        self.setup_client()
-        instruments = self.client.getinstruments()
+        if self.client is None:
+            self.setup_client()
+        instruments = [i for i in self.client.getinstruments() if i['baseCurrency'] == self.currency]
         options = [i for i in instruments if i['kind'] == 'option']
         for option_info in options:
             option_type = option_info['optionType']
