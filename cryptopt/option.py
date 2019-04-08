@@ -26,7 +26,9 @@ class Option:
         self.expiry = expiry
         self.interest_rate = interest_rate
         if volatility is not None:
-            self.vol = volatility        # decimal
+            self.vol = volatility
+        else:
+            self.vol = None
         self.underlying_price = underlying_price
         self.time = time
         self.exchange_symbol = exchange_symbol
