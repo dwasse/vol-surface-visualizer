@@ -7,30 +7,39 @@
 			<h1>BTC/USD Volatility Surface</h1>
 		</div>
 		<div class="sidenav">
+			<div>
+				<h3>
+					Delta View
+					<label class="switch">
+						<input id="viewSwitch" type="checkbox" onclick="switchViews()"><span class="slider round"></span>
+					</label>
+					&nbsp;&nbsp;&nbsp;&nbsp;Strike View
+				</h3>
+			</div>
 			<div class="limit">
 				<h3>
-					<label for="minDelta">minDelta:</label>
+					<label for="minDelta">Min Delta:</label>
 					<span><input id="minDelta" type="text" size="2" value="0.1" name="minDelta" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
 			<div class="limit">
 				<h3>
-					<label for="maxDelta">maxDelta:</label>
+					<label for="maxDelta">Max Delta:</label>
 					<span><input id="maxDelta" type="text" size="2" value="0.5" name="maxDelta" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
 			<div class="limit">
 				<h3>
-					<label for="minVol">minVol:</label>
+					<label for="minVol">Min Vol:</label>
 					<span><input id="minVol" type="text" size="2" value="0.1" name="minVol" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
 			<div class="limit">
 				<h3>
-					<label for="maxVol">maxVol:</label>
+					<label for="maxVol">Max Vol:</label>
 					<span><input id="maxVol" type="text" size="2" value="2.0" name="maxVol" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>

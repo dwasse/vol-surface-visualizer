@@ -1,21 +1,20 @@
 
 
 var optionData = {};
-// var minVol = .1;
-// var maxVol = 2;
-// var minDelta = .1;
-// var maxDelta = .5;
 var minDelta = parseFloat(document.getElementById("minDelta").value);
 var maxDelta = parseFloat(document.getElementById("maxDelta").value);
 var minVol = parseFloat(document.getElementById("minVol").value);
 var maxVol = parseFloat(document.getElementById("maxVol").value);
-var call_vols = [];
-var call_deltas = [];
-var call_times = [];
-var put_vols = [];
-var put_deltas = [];
-var put_times = [];
+var callVols = [];
+var callDeltas = [];
+var callTimes = [];
+var callStrikes = [];
+var putVols = [];
+var putDeltas = [];
+var putTimes = [];
+var putStrikes = [];
 
+var strikeView = false;
 
 function sendDataPOST(requestData) {
   return new Promise(function(resolve, reject) {
@@ -61,12 +60,14 @@ function parseOptionData() {
 	minVol = parseFloat(document.getElementById("minVol").value);
 	maxVol = parseFloat(document.getElementById("maxVol").value);
 	console.log("Min delta: " + minDelta + ", max delta: " + maxDelta + ", min vol: " + minVol + ", max vol: " + maxVol);
-	call_times = [];
-	call_deltas = [];
-	call_vols = [];
-	put_times = [];
-	put_deltas = [];
-	put_vols = [];
+	callTimes = [];
+	callDeltas = [];
+	callVols = [];
+	callStrikes = [];
+	putTimes = [];
+	putDeltas = [];
+	putVols = [];
+	putStrikes = [];
 	var currentTimestamp = new Date().getTime();
 	for (var i = 0; i < optionData.length; i++) {
 		data = optionData[i];
@@ -75,16 +76,18 @@ function parseOptionData() {
 		var daysToExpiration = (date.getTime() - currentTimestamp) / (86400 * 1000);
 		var delta = parseFloat(data['delta']);
 		var vol = parseFloat(data['vol']);
-		// console.log("Days to expiration: " + daysToExpiration + ", delta: " + delta + ", vol: " + vol)
+		var strike = parseInt(data['strike']);
 		if (vol > minVol && vol < maxVol && Math.abs(delta) > minDelta && Math.abs(delta) < maxDelta) {
 			if (delta > 0) {
-				call_times.unshift(daysToExpiration);
-				call_deltas.unshift(delta);
-				call_vols.unshift(vol);
+				callTimes.unshift(daysToExpiration);
+				callDeltas.unshift(delta);
+				callVols.unshift(vol);
+				callStrikes.unshift(strike);
 			} else if (delta < 0) {
-				put_times.unshift(daysToExpiration);
-				put_deltas.unshift(delta);
-				put_vols.unshift(vol);
+				putTimes.unshift(daysToExpiration);
+				putDeltas.unshift(delta);
+				putVols.unshift(vol);
+				putStrikes.unshift(strike);
 			}
 		}
 	}
@@ -98,29 +101,37 @@ function plotVolSurface(update=false) {
   console.log("Parsing option data");
   parseOptionData();
   console.log("Plotting vol surface");
-  var call_trace = {
+  var xAxisName;
+  var xCallData;
+  var xPutData;
+  if (strikeView) {
+  	xAxisName = "Strike";
+  	xCallData = callStrikes;
+  	xPutData = putStrikes;
+  	console.log("Plotting in strike view");
+  } else {
+  	xAxisName = "Delta";
+  	xCallData = callDeltas;
+  	xPutData = putDeltas;
+  	console.log("Plotting in delta view");
+  }
+  var callTrace = {
   	type: 'mesh3d',
   	opacity: 0.5,
     color: 'rgba(255,127,80,0.7)',
-  	x: call_deltas,
-  	y: call_times,
-  	z: call_vols,
+  	x: xCallData,
+  	y: callTimes,
+  	z: callVols,
   }
-  var put_trace = {
+  var putTrace = {
   	type: 'mesh3d',
   	opacity: 0.5,
     color:'rgb(00,150,200)',
-  	x: put_deltas,
-  	y: put_times,
-  	z: put_vols,
+  	x: xPutData,
+  	y: putTimes,
+  	z: putVols,
   }
-  var call_layout = {
-    // title: {
-    // 	text: "Calls",
-    // 	font: {
-    // 		size: 40
-    // 	},
-    // },
+  var callLayout = {
     font: {
     	color: '#ffffff'
     },
@@ -136,7 +147,7 @@ function plotVolSurface(update=false) {
     scene: {
     	xaxis: {
 	    	title: {
-	    		text:'Delta',
+	    		text: xAxisName,
 	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
@@ -157,13 +168,7 @@ function plotVolSurface(update=false) {
 	    },
     }
   };
-  var put_layout = {
-    // title: {
-    // 	text: "Puts",
-    // 	font: {
-    // 		size: 40
-    // 	},
-    // },
+  var putLayout = {
     font: {
     	color: '#ffffff'
     },
@@ -179,7 +184,7 @@ function plotVolSurface(update=false) {
     scene: {
     	xaxis: {
 	    	title: {
-	    		text:'Delta',
+	    		text: xAxisName,
 	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
@@ -204,11 +209,11 @@ function plotVolSurface(update=false) {
   	displayModeBar: false
   };
   if (update) {
-  	Plotly.react('calls', [call_trace], call_layout, options);
-  	Plotly.react('puts', [put_trace], put_layout, options);
+  	Plotly.react('calls', [callTrace], callLayout, options);
+  	Plotly.react('puts', [putTrace], putLayout, options);
   } else {
-  	Plotly.newPlot('calls', [call_trace], call_layout, options);
-    Plotly.newPlot('puts', [put_trace], put_layout, options);
+  	Plotly.newPlot('calls', [callTrace], callLayout, options);
+    Plotly.newPlot('puts', [putTrace], putLayout, options);
   }
   console.log("Plotted vol surface");
 }
@@ -220,6 +225,17 @@ function refresh(e) {
 		parseOptionData();
 		plotVolSurface(true);
 	}
+}
+
+function switchViews() {
+	var viewSwitch = document.getElementById("viewSwitch");
+	if (viewSwitch.checked == true) {
+		strikeView = true;
+	} else {
+		strikeView = false;
+	}
+	console.log("Switched strikeView: " + strikeView);
+	plotVolSurface();
 }
 
 
