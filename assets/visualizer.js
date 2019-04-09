@@ -1,11 +1,14 @@
 
 
 var optionData = {};
-var minVol = .1;
-var maxVol = 2;
-var minDelta = .1;
-var maxDelta = .5;
-var minDaysUntilExpiration = 10;
+// var minVol = .1;
+// var maxVol = 2;
+// var minDelta = .1;
+// var maxDelta = .5;
+var minDelta = parseFloat(document.getElementById("minDelta").value);
+var maxDelta = parseFloat(document.getElementById("maxDelta").value);
+var minVol = parseFloat(document.getElementById("minVol").value);
+var maxVol = parseFloat(document.getElementById("maxVol").value);
 var call_vols = [];
 var call_deltas = [];
 var call_times = [];
@@ -53,9 +56,17 @@ async function getOptionData() {
 }
 
 function parseOptionData() {
-	times = [];
-	deltas = [];
-	vols = [];
+	minDelta = parseFloat(document.getElementById("minDelta").value);
+	maxDelta = parseFloat(document.getElementById("maxDelta").value);
+	minVol = parseFloat(document.getElementById("minVol").value);
+	maxVol = parseFloat(document.getElementById("maxVol").value);
+	console.log("Min delta: " + minDelta + ", max delta: " + maxDelta + ", min vol: " + minVol + ", max vol: " + maxVol);
+	call_times = [];
+	call_deltas = [];
+	call_vols = [];
+	put_times = [];
+	put_deltas = [];
+	put_vols = [];
 	var currentTimestamp = new Date().getTime();
 	for (var i = 0; i < optionData.length; i++) {
 		data = optionData[i];
@@ -64,8 +75,8 @@ function parseOptionData() {
 		var daysToExpiration = (date.getTime() - currentTimestamp) / (86400 * 1000);
 		var delta = parseFloat(data['delta']);
 		var vol = parseFloat(data['vol']);
-		console.log("Days to expiration: " + daysToExpiration + ", delta: " + delta + ", vol: " + vol)
-		if (vol > minVol && vol < maxVol && Math.abs(delta) > minDelta && Math.abs(delta) < maxDelta && daysToExpiration > minDaysUntilExpiration) {
+		// console.log("Days to expiration: " + daysToExpiration + ", delta: " + delta + ", vol: " + vol)
+		if (vol > minVol && vol < maxVol && Math.abs(delta) > minDelta && Math.abs(delta) < maxDelta) {
 			if (delta > 0) {
 				call_times.unshift(daysToExpiration);
 				call_deltas.unshift(delta);
@@ -77,104 +88,113 @@ function parseOptionData() {
 			}
 		}
 	}
-	console.log("Updated times: " + JSON.stringify(times));
-	console.log("Updated deltas: " + JSON.stringify(deltas));
-	console.log("Updated vols: " + JSON.stringify(vols));
 }
 
 function unpack(rows, key) {
   return rows.map(function(row) { return row[key]; });
 }
 
-function plotVolSurface() {
+function plotVolSurface(update=false) {
   console.log("Parsing option data");
   parseOptionData();
   console.log("Plotting vol surface");
   var call_trace = {
   	type: 'mesh3d',
-  	intensity: [0, 0.33, 0.66, 1],
-    colorscale: [
-      [0, 'rgb(255, 0, 0)'],
-      [0.5, 'rgb(0, 255, 0)'],
-      [1, 'rgb(0, 0, 255)']
-    ],
+  	opacity: 0.5,
+    color: 'rgba(255,127,80,0.7)',
   	x: call_deltas,
   	y: call_times,
   	z: call_vols,
   }
   var put_trace = {
   	type: 'mesh3d',
-  	intensity: [0, 0.33, 0.66, 1],
-    colorscale: [
-      [0, 'rgb(255, 0, 0)'],
-      [0.5, 'rgb(0, 255, 0)'],
-      [1, 'rgb(0, 0, 255)']
-    ],
+  	opacity: 0.5,
+    color:'rgb(00,150,200)',
   	x: put_deltas,
   	y: put_times,
   	z: put_vols,
   }
   var call_layout = {
-    title: 'Calls',
+    // title: {
+    // 	text: "Calls",
+    // 	font: {
+    // 		size: 40
+    // 	},
+    // },
+    font: {
+    	color: '#ffffff'
+    },
     paper_bgcolor:"black",
-    autosize: false,
     width: 1000,
-    height: 1000,
+    height: 750,
     margin: {
       l: 65,
       r: 50,
-      b: 65,
-      t: 90,
+      b: 0,
+      t: 0,
     },
     scene: {
     	xaxis: {
 	    	title: {
-	    		text:'Delta'
+	    		text:'Delta',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
 	    yaxis: {
 	    	title: {
-	    		text: 'Days to Expiration'
+	    		text: 'Days to Expiration',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
 	    zaxis: {
 	    	title: {
-	    		text: 'Volatility'
+	    		text: 'Volatility',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
     }
   };
   var put_layout = {
-    title: 'Puts',
+    // title: {
+    // 	text: "Puts",
+    // 	font: {
+    // 		size: 40
+    // 	},
+    // },
+    font: {
+    	color: '#ffffff'
+    },
     paper_bgcolor:"black",
-    autosize: false,
     width: 1000,
-    height: 1000,
+    height: 750,
     margin: {
       l: 65,
       r: 50,
-      b: 65,
-      t: 90,
+      b: 0,
+      t: 0,
     },
     scene: {
     	xaxis: {
 	    	title: {
-	    		text:'Delta'
+	    		text:'Delta',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
 	    yaxis: {
 	    	title: {
-	    		text: 'Days to Expiration'
+	    		text: 'Days to Expiration',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
 	    zaxis: {
 	    	title: {
-	    		text: 'Volatility'
+	    		text: 'Volatility',
+	    		fontColor: 'white'
 	    	},
 	    	showgrid: true,
 	    },
@@ -183,9 +203,23 @@ function plotVolSurface() {
   var options = {
   	displayModeBar: false
   };
-  Plotly.newPlot('calls', [call_trace], call_layout, options);
-  Plotly.newPlot('puts', [put_trace], put_layout, options);
+  if (update) {
+  	Plotly.react('calls', [call_trace], call_layout, options);
+  	Plotly.react('puts', [put_trace], put_layout, options);
+  } else {
+  	Plotly.newPlot('calls', [call_trace], call_layout, options);
+    Plotly.newPlot('puts', [put_trace], put_layout, options);
+  }
   console.log("Plotted vol surface");
+}
+
+function refresh(e) {
+	var code = (e.keyCode ? e.keyCode : e.which);
+	if (code == 13) {
+		console.log("Enter press detected, searching...");
+		parseOptionData();
+		plotVolSurface(true);
+	}
 }
 
 

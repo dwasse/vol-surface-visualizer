@@ -31,12 +31,12 @@ class Server(SimpleHTTPRequestHandler):
                 value_split_1 = raw_message.split("\\n")
                 if len(value_split_1) >= 3:
                     value_split_2 = value_split_1[2].split('\\r')
-                    if len(value_split_2) >=1:
+                    if len(value_split_2) >= 1:
                         value = value_split_2[0]
                 if key and value:
                     data[key] = value
             except Exception as e:
-                print('error decoding data: ' + str(e))
+                print('Error decoding data: ' + str(e))
     
         self.process_data(data)
 
@@ -54,7 +54,7 @@ class Server(SimpleHTTPRequestHandler):
             raw_option_data = load_last_data()
             response_data = {
                 'status': 'SUCCESS',
-                'data': raw_option_data
+                'data': compress_data(raw_option_data)
             }
             self.send_post_response(response_data)
             print("Sent response with data: " + json.dumps(response_data))
@@ -136,20 +136,31 @@ def load_last_data():
     pairs = get_immediate_subdirectories(data_path)
     for pair in pairs:
         dates = get_immediate_subdirectories(data_path + pair)
-        print("dates: " + str(dates))
         date = str(dates[-1])
-        print("date: " + str(date) + ", pair: " + pair)
         expirys = get_immediate_subdirectories(data_path + pair + config.delimiter + date)
-        print("expirys: " + str(expirys))
         for expiry in expirys:
             file_path = data_path + pair + config.delimiter + date + config.delimiter + expiry
-            print("file path: " + file_path)
             files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
-            print("files: " + str(files))
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
                     options.append(ast.literal_eval(data_file.read())[-1])
     return options
+
+
+def compress_data(data):
+    compressed_data = []
+    for entry in data:
+        print("entry: " + json.dumps(entry))
+        compressed_entry = {}
+        for element in entry:
+            print("element: " + str(element))
+            if entry[element].replace('.', '', 1).isdigit():
+                compressed_entry[element] = round(float(entry[element]), config.num_decimals)
+            else:
+                compressed_entry[element] = entry[element]
+        print("Adding compressed entry: " + json.dumps(compressed_entry))
+        compressed_data.append(compressed_entry)
+    return compressed_data
 
 
 pair = config.pair
