@@ -1,2 +1,2 @@
 # vol-surface-visualizer
-Volatitlity surface visualizer for 0xhedge.io
+Volatility surface visualizer for 0xhedge.io
