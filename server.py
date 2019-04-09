@@ -1,19 +1,23 @@
 from httpServer import SimpleHTTPRequestHandler, HTTPServer
 from cryptopt.theoEngine import TheoEngine
+from threading import Thread
 import config
+import logging
 import time
 import datetime
 import json
 import urllib
 import ast
-from threading import Thread
 import os
+import sys
+import traceback
 
 data_path = os.getcwd() + config.delimiter + 'optionData' + config.delimiter
 if not os.path.exists(data_path):
     print("Creating data directory: " + data_path)
     os.makedirs(data_path)
     config.load_data = False
+
 
 class Server(SimpleHTTPRequestHandler):
 
@@ -23,7 +27,6 @@ class Server(SimpleHTTPRequestHandler):
         fields = urllib.parse.parse_qs(post_data)
         raw_messages = str(fields[' name']).split("'")
         data = {}
-    
         for raw_message in raw_messages:
             try:
                 key = ''
@@ -40,7 +43,6 @@ class Server(SimpleHTTPRequestHandler):
                     data[key] = value
             except Exception as e:
                 print('Error decoding data: ' + str(e))
-    
         self.process_data(data)
 
     def do_GET(self):
@@ -52,7 +54,7 @@ class Server(SimpleHTTPRequestHandler):
                 f.close()
 
     def process_data(self, data):
-        print("Processing data: " + json.dumps(data))
+        logging.info("Processing data: " + json.dumps(data))
         if data['action'] == 'getOptionData':
             raw_option_data = load_last_data()
             response_data = {
@@ -60,7 +62,7 @@ class Server(SimpleHTTPRequestHandler):
                 'data': compress_data(raw_option_data)
             }
             self.send_post_response(response_data)
-            print("Sent response with data: " + json.dumps(response_data))
+            logging.info("Sent response with data: " + json.dumps(response_data))
 
     def send_post_response(self, response_data):
         self.send_response(200)
@@ -80,7 +82,9 @@ class Server(SimpleHTTPRequestHandler):
 def run_server(server_class=HTTPServer, handler_class=Server, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print('Server running on port:' + str(port) + '...')
+    msg = 'Server running on port ' + str(port) + '...'
+    print(msg)
+    logging.info(msg)
     httpd.serve_forever()
 
 
@@ -119,14 +123,22 @@ def theo_engine_runnable(theo_engine):
 
 
 def pull_and_save(theo_engine):
-    print("Building options...")
-    theo_engine.build_deribit_options()
-    print("Calculating vols...")
-    theo_engine.calc_deribit_implied_vols()
-    print("Calculating greeks...")
-    theo_engine.calc_all_greeks()
-    print("Saving data...")
-    save_data(theo_engine)
+    print("Pulling and saving at " + time.ctime())
+    try:
+        logging.info("Building options...")
+        theo_engine.build_deribit_options()
+        logging.info("Calculating vols...")
+        theo_engine.calc_deribit_implied_vols()
+        logging.info("Calculating greeks...")
+        theo_engine.calc_all_greeks()
+        logging.info("Saving data...")
+        save_data(theo_engine)
+    except Exception as e:
+        logging.error("Exception pulling and saving data: " + str(e))
+        type_, value_, traceback_ = sys.exc_info()
+        logging.error('Type: ' + str(type_))
+        logging.error('Value: ' + str(value_))
+        logging.error('Traceback: ' + str(traceback.format_exc()))
 
 
 def get_immediate_subdirectories(a_dir):
@@ -153,15 +165,12 @@ def load_last_data():
 def compress_data(data):
     compressed_data = []
     for entry in data:
-        print("entry: " + json.dumps(entry))
         compressed_entry = {}
         for element in entry:
-            print("element: " + str(element))
             if entry[element].replace('.', '', 1).isdigit():
                 compressed_entry[element] = round(float(entry[element]), config.num_decimals)
             else:
                 compressed_entry[element] = entry[element]
-        print("Adding compressed entry: " + json.dumps(compressed_entry))
         compressed_data.append(compressed_entry)
     return compressed_data
 
@@ -171,9 +180,13 @@ theo_engine = TheoEngine(pair)
 raw_option_data = []
 if config.load_data:
     raw_option_data = load_last_data()
-    print("Loaded raw option data: " + json.dumps(raw_option_data))
+    msg = "Loaded raw option data: " + json.dumps(raw_option_data)
+    print(msg)
+    logging.info(msg)
 else:
-    print("Pulling data from API and saving...")
+    msg = "Pulling data from API and saving..."
+    print(msg)
+    logging.info(msg)
     pull_and_save(theo_engine)
 theo_engine_thread = Thread(target=theo_engine_runnable, kwargs={'theo_engine': theo_engine})
 theo_engine_thread.start()
