@@ -10,7 +10,10 @@ from threading import Thread
 import os
 
 data_path = os.getcwd() + config.delimiter + 'optionData' + config.delimiter
-
+if not os.path.exists(data_path):
+    print("Creating data directory: " + data_path)
+    os.makedirs(data_path)
+    config.load_data = False
 
 class Server(SimpleHTTPRequestHandler):
 
@@ -77,7 +80,7 @@ class Server(SimpleHTTPRequestHandler):
 def run_server(server_class=HTTPServer, handler_class=Server, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print('Server running at localhost:' + str(port) + '...')
+    print('Server running on port:' + str(port) + '...')
     httpd.serve_forever()
 
 
@@ -170,6 +173,7 @@ if config.load_data:
     raw_option_data = load_last_data()
     print("Loaded raw option data: " + json.dumps(raw_option_data))
 else:
+    print("Pulling data from API and saving...")
     pull_and_save(theo_engine)
 theo_engine_thread = Thread(target=theo_engine_runnable, kwargs={'theo_engine': theo_engine})
 theo_engine_thread.start()
