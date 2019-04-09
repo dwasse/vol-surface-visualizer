@@ -3,8 +3,12 @@
 var optionData = {};
 var minDelta = parseFloat(document.getElementById("minDelta").value);
 var maxDelta = parseFloat(document.getElementById("maxDelta").value);
+var minStrike = parseFloat(document.getElementById("minStrike").value);
+var maxStrike = parseFloat(document.getElementById("maxStrike").value);
 var minVol = parseFloat(document.getElementById("minVol").value);
 var maxVol = parseFloat(document.getElementById("maxVol").value);
+var minDays = parseFloat(document.getElementById("minDays").value);
+var maxDays = parseFloat(document.getElementById("maxDays").value);
 var callVols = [];
 var callDeltas = [];
 var callTimes = [];
@@ -57,9 +61,16 @@ async function getOptionData() {
 function parseOptionData() {
 	minDelta = parseFloat(document.getElementById("minDelta").value);
 	maxDelta = parseFloat(document.getElementById("maxDelta").value);
+	minStrike = parseFloat(document.getElementById("minStrike").value);
+	maxStrike = parseFloat(document.getElementById("maxStrike").value);
 	minVol = parseFloat(document.getElementById("minVol").value);
 	maxVol = parseFloat(document.getElementById("maxVol").value);
-	console.log("Min delta: " + minDelta + ", max delta: " + maxDelta + ", min vol: " + minVol + ", max vol: " + maxVol);
+	minDays = parseFloat(document.getElementById("minDays").value);
+	maxDays = parseFloat(document.getElementById("maxDays").value);
+	console.log("Min delta: " + minDelta + ", max delta: " + maxDelta
+		+ ", min strike: " + minStrike + ", max strike: " + maxStrike
+		+ ", min vol: " + minVol + ", max vol: " + maxVol
+		+ ", min days: " + minDays + ", max days: " + maxDays);
 	callTimes = [];
 	callDeltas = [];
 	callVols = [];
@@ -73,18 +84,24 @@ function parseOptionData() {
 		data = optionData[i];
 		var expiryParts = data['expiry'].split('-');
 		var date = new Date(expiryParts[0], expiryParts[1] - 1, expiryParts[2]);
-		var daysToExpiration = (date.getTime() - currentTimestamp) / (86400 * 1000);
+		var days = (date.getTime() - currentTimestamp) / (86400 * 1000);
 		var delta = parseFloat(data['delta']);
 		var vol = parseFloat(data['vol']);
 		var strike = parseInt(data['strike']);
-		if (vol > minVol && vol < maxVol && Math.abs(delta) > minDelta && Math.abs(delta) < maxDelta) {
+		if (vol > minVol && vol < maxVol 
+			&& Math.abs(delta) > minDelta 
+			&& Math.abs(delta) < maxDelta
+			&& strike > minStrike
+			&& strike < maxStrike
+			&& days > minDays
+			&& days < maxDays) {
 			if (delta > 0) {
-				callTimes.unshift(daysToExpiration);
+				callTimes.unshift(days);
 				callDeltas.unshift(delta);
 				callVols.unshift(vol);
 				callStrikes.unshift(strike);
 			} else if (delta < 0) {
-				putTimes.unshift(daysToExpiration);
+				putTimes.unshift(days);
 				putDeltas.unshift(delta);
 				putVols.unshift(vol);
 				putStrikes.unshift(strike);
