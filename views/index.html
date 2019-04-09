@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <head>
 	<title> 0xhedge </title>
 	<link rel="stylesheet" href="../assets/style.css">
@@ -5,8 +6,43 @@
 		<div>
 			<h1>BTC/USD Volatility Surface</h1>
 		</div>
-		<div align="center" id="calls" style="width:600px;height:1000px;"></div>
-		<div align="center" id="puts" style="width:600px;height:1000px;"></div>
+		<div class="sidenav">
+			<div class="limit">
+				<h3>
+					<label for="minDelta">minDelta:</label>
+					<span><input id="minDelta" type="text" size="2" value="0.1" name="minDelta" onkeypress="refresh(event, this)"></input></span>
+				</h3>
+			</div>
+			<br>
+			<div class="limit">
+				<h3>
+					<label for="maxDelta">maxDelta:</label>
+					<span><input id="maxDelta" type="text" size="2" value="0.5" name="maxDelta" onkeypress="refresh(event, this)"></input></span>
+				</h3>
+			</div>
+			<br>
+			<div class="limit">
+				<h3>
+					<label for="minVol">minVol:</label>
+					<span><input id="minVol" type="text" size="2" value="0.1" name="minVol" onkeypress="refresh(event, this)"></input></span>
+				</h3>
+			</div>
+			<br>
+			<div class="limit">
+				<h3>
+					<label for="maxVol">maxVol:</label>
+					<span><input id="maxVol" type="text" size="2" value="2.0" name="maxVol" onkeypress="refresh(event, this)"></input></span>
+				</h3>
+			</div>
+		</div>
+		<div>
+			<h2>Calls</h2>
+		</div>
+		<div class="plot" id="calls" style="width:1000px;height:1000px;"></div>
+		<div>
+			<h2>Puts</h2>
+		</div>
+		<div class="plot" id="puts" style="width:1000px;height:1000px;"></div>
 		<div>
 			<script src="../assets/plotly.js"></script>
 			<script src="../assets/visualizer.js"></script>
