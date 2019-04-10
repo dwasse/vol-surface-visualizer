@@ -1,6 +1,10 @@
 from httpServer import SimpleHTTPRequestHandler, HTTPServer
 from cryptopt.theoEngine import TheoEngine
 from threading import Thread
+from volWebsocket import VolWebsocket
+from autobahn.twisted.websocket import WebSocketServerFactory
+from twisted.internet import reactor
+from cryptopt.deribitWebsocket import DeribitWebsocket
 import config
 import logging
 import time
@@ -88,7 +92,13 @@ def run_server(server_class=HTTPServer, handler_class=Server, port=8000):
     httpd.serve_forever()
 
 
-def save_data(theo_engine):
+def run_websocket():
+    global reactor
+    reactor.run()
+
+
+def save_data():
+    global theo_engine
     today = datetime.datetime.today().strftime('%Y-%m-%d')
     utc_timestamp = str(datetime.datetime.utcnow())
     for option in theo_engine.iterate_options():
@@ -100,29 +110,32 @@ def save_data(theo_engine):
         if not os.path.exists(full_data_path):
             print("Creating directory: " + full_data_path)
             os.makedirs(full_data_path)
-        savable_data = {
-            'timestamp': utc_timestamp,
-            'expiry': expiry,
-            'type': option.option_type,
-            'strike': str(option.strike),
-            'delta': str(option.delta),
-            'gamma': str(option.gamma),
-            'theta': str(option.theta),
-            'wvega': str(option.wvega),
-            'vega': str(option.vega),
-            'vol': str(option.vol)
-        }
+        # savable_data = {
+        #     'timestamp': utc_timestamp,
+        #     'expiry': expiry,
+        #     'type': option.option_type,
+        #     'strike': str(option.strike),
+        #     'delta': str(option.delta),
+        #     'gamma': str(option.gamma),
+        #     'theta': str(option.theta),
+        #     'wvega': str(option.wvega),
+        #     'vega': str(option.vega),
+        #     'vol': str(option.vol)
+        # }
+        savable_data = option.get_metadata(utc_timestamp)
         with open(full_data_path + option_name + ".json", 'a') as outfile:
             outfile.write(str(savable_data) + ', ')
 
 
-def theo_engine_runnable(theo_engine):
+def theo_engine_runnable():
+    global theo_engine
     while True:
         time.sleep(config.data_pull_freq)
-        pull_and_save(theo_engine)
+        pull_and_save()
 
 
-def pull_and_save(theo_engine):
+def pull_and_save():
+    global theo_engine
     print("Pulling and saving at " + time.ctime())
     try:
         logging.info("Building options...")
@@ -132,7 +145,7 @@ def pull_and_save(theo_engine):
         logging.info("Calculating greeks...")
         theo_engine.calc_all_greeks()
         logging.info("Saving data...")
-        save_data(theo_engine)
+        save_data()
     except Exception as e:
         logging.error("Exception pulling and saving data: " + str(e))
         type_, value_, traceback_ = sys.exc_info()
@@ -147,6 +160,7 @@ def get_immediate_subdirectories(a_dir):
 
 
 def load_last_data():
+    global theo_engine
     options = []
     pairs = get_immediate_subdirectories(data_path)
     for pair in pairs:
@@ -159,6 +173,10 @@ def load_last_data():
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
                     options.append(ast.literal_eval(data_file.read())[-1])
+    theo_engine.parse_option_metadata(options)
+    msg = "Parsed option metadata"
+    print(msg)
+    logging.info(msg)
     return options
 
 
@@ -175,21 +193,83 @@ def compress_data(data):
     return compressed_data
 
 
+def on_deribit_msg(msg):
+    global reactor
+    global theo_engine
+    logging.info("Processing deribit msg: " + msg)
+    msg_data = ast.literal_eval(msg.replace("true", "True").replace("false", "False"))
+    try:
+        notifications = msg_data['notifications']
+        for notif in notifications:
+            if notif["success"]:
+                logging.info("Processing notif: " + json.dumps(notif))
+                result = notif["result"]
+                instrument = result["instrument"]
+                option = theo_engine.get_option(instrument)
+                logging.info("msg instrument: " + instrument + ", theo engine instruments: "
+                             + json.dumps(list(theo_engine.options_by_name.keys())))
+                if option is not None:
+                    logging.info("Got option: " + option.exchange_symbol)
+                    bids = result["bids"]
+                    asks = result["asks"]
+                    for bid in bids:
+                        option.best_bid = bid['price']
+                        logging.info("Set best bid for " + instrument + ": " + str(option.best_bid))
+                    for ask in asks:
+                        option = theo_engine.get_option(instrument)
+                        option.best_ask = ask['price']
+                        logging.info("Set best ask for " + instrument + ": " + str(option.best_ask))
+                    option.set_mid_market()
+                    vol = option.vol
+                    option.calc_implied_vol()
+                    logging.info("Updated implied vol for " + instrument + " from " + str(vol) + " to " + str(option.vol))
+                    log_msg = "Calling reactor.option_update()"
+                    print(log_msg)
+                    logging.info(log_msg)
+                    VolWebsocket.option_update(option.get_metadata())
+    except Exception as e:
+        logging.error("Error processing msg: " + str(e))
+        type_, value_, traceback_ = sys.exc_info()
+        logging.error('Type: ' + str(type_))
+        logging.error('Value: ' + str(value_))
+        logging.error('Traceback: ' + str(traceback.format_exc()))
+
+
 pair = config.pair
 theo_engine = TheoEngine(pair)
 raw_option_data = []
 if config.load_data:
     raw_option_data = load_last_data()
     msg = "Loaded raw option data: " + json.dumps(raw_option_data)
-    print(msg)
+    # print(msg)
     logging.info(msg)
 else:
     msg = "Pulling data from API and saving..."
     print(msg)
     logging.info(msg)
-    pull_and_save(theo_engine)
-theo_engine_thread = Thread(target=theo_engine_runnable, kwargs={'theo_engine': theo_engine})
+    pull_and_save()
+
+theo_engine.get_underlying_price()
+theo_engine_thread = Thread(target=theo_engine_runnable)
 theo_engine_thread.start()
 
-print("Running server...")
-run_server()
+msg = "Running server..."
+print(msg)
+logging.info(msg)
+server_thread = Thread(target=run_server)
+server_thread.start()
+
+msg = "Connecting to deribit websocket..."
+print(msg)
+logging.info(msg)
+deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg)
+deribit_ws_thread = Thread(target=deribit_websocket.start)
+deribit_ws_thread.start()
+
+msg = "Running websocket..."
+print(msg)
+logging.info(msg)
+factory = WebSocketServerFactory(u"ws://127.0.0.1:9000")
+factory.protocol = VolWebsocket
+reactor.listenTCP(9000, factory)
+run_websocket()

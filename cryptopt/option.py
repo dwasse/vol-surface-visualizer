@@ -1,6 +1,7 @@
 import datetime
 import math
 import pytz
+import logging
 from scipy.stats import norm
 
 
@@ -43,6 +44,8 @@ class Option:
         self.wvega = None
         self.present_value = None
         self.mid_market = None
+        self.best_bid = None
+        self.best_ask = None
 
     def __str__(self):
         return self.underlying_pair + " " + str(self.strike) + " " + self.option_type + " with expiry " + str(self.expiry)
@@ -53,14 +56,38 @@ class Option:
     def set_underlying_price(self, underlying_price):
         self.underlying_price = underlying_price
 
+    def get_metadata(self, timestamp=None):
+        if timestamp is None:
+            timestamp = str(datetime.datetime.utcnow())
+        return {
+            'timestamp': timestamp,
+            'expiry': str(self.expiry)[:10],
+            'type': self.option_type,
+            'strike': str(self.strike),
+            'delta': str(self.delta),
+            'gamma': str(self.gamma),
+            'theta': str(self.theta),
+            'wvega': str(self.wvega),
+            'vega': str(self.vega),
+            'vol': str(self.vol),
+            'best_bid': str(self.best_bid),
+            'best_ask': str(self.best_ask),
+            'exchange_symbol': self.exchange_symbol
+        }
+
     def set_time(self, time):
         self.time = time
 
     def set_vol(self, vol):
         self.vol = vol
 
-    def set_mid_market(self, mid_market):
-        self.mid_market = mid_market
+    def set_mid_market(self, mid_market=None):
+        if mid_market is not None:
+            self.mid_market = mid_market
+        else:
+            if self.best_bid is not None and self.best_ask is not None:
+                self.mid_market = (self.best_bid + self.best_ask) / 2
+        logging.info("Set mid market: " + str(self.mid_market))
 
     def calc_greeks(self, verbose=False):
         self.calc_theo()
@@ -138,7 +165,11 @@ class Option:
         return self.wvega
 
     # Price in BTC
-    def calc_implied_vol(self, btc_price, num_iterations=100, accuracy=.05, low_vol=0, high_vol=10):
+    def calc_implied_vol(self, btc_price=None, num_iterations=100, accuracy=.05, low_vol=0, high_vol=10):
+        if btc_price is None:
+            btc_price = self.mid_market
+        logging.info("Calculating vol for " + self.exchange_symbol + " with btc price " + str(btc_price)
+                     + " and underlying price " + str(self.underlying_price))
         usd_price = btc_price * self.underlying_price
         self.calc_theo()
         for i in range(num_iterations):

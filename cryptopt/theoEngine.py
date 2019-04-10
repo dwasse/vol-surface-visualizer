@@ -1,5 +1,7 @@
 import datetime
 import pytz
+import logging
+import ast
 from .option import Option
 from .deribitREST import DeribitREST
 
@@ -23,6 +25,7 @@ class TheoEngine:
             'call': {},
             'put': {}
         }
+        self.options_by_name = {}
         self.underlying_exchange_symbol = self.get_exchange_symbol(pair=self.underlying_pair)
         self.client = None
         if underlying_price is None:
@@ -54,11 +57,16 @@ class TheoEngine:
         return None
 
     def get_underlying_price(self):
-        self.underlying_price = self.get_mid_market(self.client.getorderbook(self.underlying_exchange_symbol))
+        orderbook = self.client.getorderbook(self.underlying_exchange_symbol)
+        self.underlying_price = (orderbook['bids'][0]['price'] + orderbook['asks'][0]['price']) / 2
+        for option in self.iterate_options():
+            option.set_underlying_price(self.underlying_price)
         return self.underlying_price
 
-    def get_mid_market(self, orderbook):
-        return (orderbook['bids'][0]['price'] + orderbook['asks'][0]['price']) / 2
+    def get_option(self, option_name):
+        if option_name in self.options_by_name:
+            return self.options_by_name[option_name]
+        return None
 
     def build_options(self):
         if self.strikes is not None and self.expirations is not None:
@@ -79,6 +87,36 @@ class TheoEngine:
                         )
                         option.calc_greeks()
                         self.options[option_type][expiry][strike] = option
+                        self.options_by_name[option.exchange_symbol] = option
+
+    def parse_option_metadata(self, option_metadata):
+        for metadata in option_metadata:
+            expiry = metadata['expiry']
+            [year, month, day] = expiry.split('-')
+            expiry = datetime.datetime(year=int(year), month=int(month), day=int(day))
+            option_type = metadata['type']
+            strike = int(float(metadata['strike']))
+            option = Option(underlying_pair=self.underlying_pair,
+                            option_type=option_type,
+                            strike=strike,
+                            expiry=expiry
+                            )
+            option.delta = float(metadata['delta'])
+            option.gamma = float(metadata['gamma'])
+            option.theta = float(metadata['theta'])
+            option.wvega = float(metadata['wvega'])
+            option.vega = float(metadata['vega'])
+            option.vol = float(metadata['vol'])
+            option.best_bid = ast.literal_eval(metadata['best_bid'])
+            option.best_ask = ast.literal_eval(metadata['best_ask'])
+            option.exchange_symbol = metadata['exchange_symbol']
+            if option_type not in self.options:
+                self.options[option_type] = {}
+            if expiry not in self.options[option_type]:
+                self.options[option_type][expiry] = {}
+            self.options[option_type][expiry][strike] = option
+            self.options_by_name[option.exchange_symbol] = option
+            logging.info("Parsed metadata for option: " + option.exchange_symbol)
 
     def iterate_options(self):
         for option_type in self.options:
@@ -128,23 +166,32 @@ class TheoEngine:
                 self.options[option_type][expiry][strike] = option
             else:
                 self.options[option_type][expiry] = {strike: option}
+            self.options_by_name[option.exchange_symbol] = option
+            logging.info("Added option to options by name: " + option.exchange_symbol)
 
     def calc_deribit_implied_vols(self, max_market_width=20):
         for option in self.iterate_options():
             orderbook = self.client.getorderbook(instrument=option.exchange_symbol)
             if len(orderbook['bids']) and len(orderbook['asks']):
-                best_bid = orderbook['bids'][0]['price']
-                best_ask = orderbook['asks'][0]['price']
-                mid_market = (best_bid + best_ask) / 2
-                market_width = (((best_ask - mid_market) / mid_market) - 1) * 100
+                option.best_bid = orderbook['bids'][0]['price']
+                option.best_ask = orderbook['asks'][0]['price']
+                msg = "Set best market for option: " + option.exchange_symbol \
+                    + ": bid: " + str(option.best_bid) + ", ask: " + str(option.best_ask)
+                print(msg)
+                logging.info(msg)
+                option.mid_market = (option.best_bid + option.best_ask) / 2
+                market_width = (((option.best_ask - option.mid_market) / option.mid_market) - 1) * 100
                 if market_width < max_market_width:
-                    option.set_mid_market(mid_market)
+                    option.set_mid_market(option.mid_market)
                     option.calc_implied_vol(option.mid_market)
-                    print("Calculated IV for " + str(option) + ": " + str(option.vol))
                 else:
-                    print("No liquid market for " + str(option) + ", market is " + str(market_width) + " percent wide")
+                    msg = "No liquid market for " + str(option) + ", market is " + str(market_width) + " percent wide"
+                    print(msg)
+                    logging.info(msg)
             else:
-                print("No market for " + str(option))
+                msg = "No market for " + option.exchange_symbol
+                print(msg)
+                logging.info(msg)
 
     def update_underlying_price(self, underlying_price):
         self.underlying_price = underlying_price
