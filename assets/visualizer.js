@@ -1,6 +1,7 @@
 
 
 var optionData = {};
+var optionsByName = {};
 var minDelta = parseFloat(document.getElementById("minDelta").value);
 var maxDelta = parseFloat(document.getElementById("maxDelta").value);
 var minStrike = parseFloat(document.getElementById("minStrike").value);
@@ -17,8 +18,23 @@ var putVols = [];
 var putDeltas = [];
 var putTimes = [];
 var putStrikes = [];
+var xAxisName;
+var xCallData;
+var xPutData;
+var callTrace;
+var putTrace;
+var callLayout;
+var putLayout;
+
+var callContainer = document.getElementById("callGraph");
+var putContainer = document.getElementById("putGraph");
+var callGraph = null;
+var putGraph = null;
+var callGraphData = null;
+var putGraphData = null;
 
 var strikeView = false;
+var currentTimestamp = new Date().getTime();
 
 function sendDataPOST(requestData) {
   return new Promise(function(resolve, reject) {
@@ -54,6 +70,13 @@ async function getOptionData() {
   let responseData = await sendDataPOST(requestData);
   if (responseData['status'] === 'SUCCESS') {
   	optionData = responseData['data'];
+  	console.log("Got option data: " + JSON.stringify(optionData));
+  	optionsByName = {};
+  	for (var i = 0; i < optionData.length; i++) {
+  		option = optionData[i];
+  		optionsByName[option['exchange_symbol']] = option;
+  	}
+  	console.log("Updated optionsByName: " + JSON.stringify(optionsByName));
   	plotVolSurface();
   }
 }
@@ -67,10 +90,10 @@ function parseOptionData() {
 	maxVol = parseFloat(document.getElementById("maxVol").value);
 	minDays = parseFloat(document.getElementById("minDays").value);
 	maxDays = parseFloat(document.getElementById("maxDays").value);
-	console.log("Min delta: " + minDelta + ", max delta: " + maxDelta
-		+ ", min strike: " + minStrike + ", max strike: " + maxStrike
-		+ ", min vol: " + minVol + ", max vol: " + maxVol
-		+ ", min days: " + minDays + ", max days: " + maxDays);
+	// console.log("Min delta: " + minDelta + ", max delta: " + maxDelta
+	// 	+ ", min strike: " + minStrike + ", max strike: " + maxStrike
+	// 	+ ", min vol: " + minVol + ", max vol: " + maxVol
+	// 	+ ", min days: " + minDays + ", max days: " + maxDays);
 	callTimes = [];
 	callDeltas = [];
 	callVols = [];
@@ -79,9 +102,9 @@ function parseOptionData() {
 	putDeltas = [];
 	putVols = [];
 	putStrikes = [];
-	var currentTimestamp = new Date().getTime();
-	for (var i = 0; i < optionData.length; i++) {
-		data = optionData[i];
+	
+	for (var key in optionsByName) {
+		data = optionsByName[key];
 		var expiryParts = data['expiry'].split('-');
 		var date = new Date(expiryParts[0], expiryParts[1] - 1, expiryParts[2]);
 		var days = (date.getTime() - currentTimestamp) / (86400 * 1000);
@@ -107,6 +130,40 @@ function parseOptionData() {
 				putStrikes.unshift(strike);
 			}
 		}
+		// if (vol > minVol 
+		// 	&& vol < maxVol 
+		// 	&& Math.abs(delta) > minDelta 
+		// 	&& Math.abs(delta) < maxDelta
+		// 	&& strike > minStrike
+		// 	&& strike < maxStrike
+		// 	&& days > minDays
+		// 	&& days < maxDays) {
+		// 	if (delta > 0) {
+		// 		if (!callDeltas.includes(delta)) {
+		// 			callDeltas.unshift(delta);
+		// 		}
+		// 		if (!callTimes.includes(days)) {
+		// 			callTimes.unshift(days);
+		// 		}
+		// 		if (!(delta in callVols)) {
+		// 			callVols[delta] = {};
+		// 		}
+		// 		callVols[delta][days] = vol;
+		// 		console.log("Added to call vols with delta: " + delta + ", days: " + days + ", vol: " + vol);
+		// 	} else if (delta < 0) {
+		// 		if (!putDeltas.includes(delta)) {
+		// 			putDeltas.unshift(delta);
+		// 		}
+		// 		if (!putTimes.includes(days)) {
+		// 			putTimes.unshift(days);
+		// 		}
+		// 		if (!(delta in putVols)) {
+		// 			putVols[delta] = {};
+		// 		}
+		// 		putVols[delta][days] = vol;
+		// 		console.log("Added to put vols with delta: " + delta + ", days: " + days + ", vol: " + vol);
+		// 	}
+		// }
 	}
 }
 
@@ -132,107 +189,27 @@ function plotVolSurface(update=false) {
   	xPutData = putDeltas;
   	console.log("Plotting in delta view");
   }
-  var callTrace = {
-  	type: 'mesh3d',
-  	opacity: 0.5,
-    color: 'rgba(255,127,80,0.7)',
-  	x: xCallData,
-  	y: callTimes,
-  	z: callVols,
+  callGraphData = new vis.DataSet();
+  for (i = 0; i < xCallData.length; i++) {
+  	callGraphData.add({
+  		x: xCallData[i],
+  		y: callTimes[i],
+  		z: callVols[i],
+  		// style: callVols[i]
+  	});
   }
-  var putTrace = {
-  	type: 'mesh3d',
-  	opacity: 0.5,
-    color:'rgb(00,150,200)',
-  	x: xPutData,
-  	y: putTimes,
-  	z: putVols,
-  }
-  var callLayout = {
-    font: {
-    	color: '#ffffff'
-    },
-    paper_bgcolor:"black",
-    width: 1000,
-    height: 750,
-    margin: {
-      l: 65,
-      r: 50,
-      b: 0,
-      t: 0,
-    },
-    scene: {
-    	xaxis: {
-	    	title: {
-	    		text: xAxisName,
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-	    yaxis: {
-	    	title: {
-	    		text: 'Days to Expiration',
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-	    zaxis: {
-	    	title: {
-	    		text: 'Volatility',
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-    }
-  };
-  var putLayout = {
-    font: {
-    	color: '#ffffff'
-    },
-    paper_bgcolor:"black",
-    width: 1000,
-    height: 750,
-    margin: {
-      l: 65,
-      r: 50,
-      b: 0,
-      t: 0,
-    },
-    scene: {
-    	xaxis: {
-	    	title: {
-	    		text: xAxisName,
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-	    yaxis: {
-	    	title: {
-	    		text: 'Days to Expiration',
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-	    zaxis: {
-	    	title: {
-	    		text: 'Volatility',
-	    		fontColor: 'white'
-	    	},
-	    	showgrid: true,
-	    },
-    }
-  };
-  var options = {
-  	displayModeBar: false
-  };
-  if (update) {
-  	Plotly.react('calls', [callTrace], callLayout, options);
-  	Plotly.react('puts', [putTrace], putLayout, options);
-  } else {
-  	Plotly.newPlot('calls', [callTrace], callLayout, options);
-    Plotly.newPlot('puts', [putTrace], putLayout, options);
-  }
-  console.log("Plotted vol surface");
+	var options = {
+	  width:  '1000px',
+	  height: '1000px',
+	  style: 'surface',
+	  // showPerspective: true,
+	  // showGrid: true,
+	  // showShadow: false,
+	  // keepAspectRatio: true,
+	  // verticalRatio: 0.5
+	};
+  console.log("Call graph data: " + JSON.stringify(callGraphData));
+  callGraph = new vis.Graph3d(callContainer, callGraphData, options);
 }
 
 function refresh(e) {
@@ -255,6 +232,14 @@ function switchViews() {
 	plotVolSurface();
 }
 
+function processOptionUpdate(dataString) {
+	var data = JSON.parse(dataString);
+	optionsByName[data['exchange_symbol']] = data;
+	parseOptionData();
+	plotVolSurface(true);
+	console.log("Processed option update");
+}
+
 var socket = null;
 var isopen = false;
 
@@ -269,7 +254,8 @@ window.onload = function() {
 
 	socket.onmessage = function(e) {
 	   if (typeof e.data == "string") {
-	      console.log("Text message received: " + e.data);
+	      console.log("Received option update: " + e.data);
+	      processOptionUpdate(e.data);
 	   } else {
 	      var arr = new Uint8Array(e.data);
 	      var hex = '';
