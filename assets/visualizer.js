@@ -10,11 +10,13 @@ var minVol = parseFloat(document.getElementById("minVol").value);
 var maxVol = parseFloat(document.getElementById("maxVol").value);
 var minDays = parseFloat(document.getElementById("minDays").value);
 var maxDays = parseFloat(document.getElementById("maxDays").value);
-var callVols = [];
+// var callVols = [];
+var callVols = {};
 var callDeltas = [];
 var callTimes = [];
 var callStrikes = [];
-var putVols = [];
+// var putVols = [];
+var putVols = {};
 var putDeltas = [];
 var putTimes = [];
 var putStrikes = [];
@@ -35,6 +37,10 @@ var putGraphData = null;
 
 var strikeView = false;
 var currentTimestamp = new Date().getTime();
+
+numberSort = function (a, b) {
+	return a - b;
+};
 
 function sendDataPOST(requestData) {
   return new Promise(function(resolve, reject) {
@@ -96,11 +102,11 @@ function parseOptionData() {
 	// 	+ ", min days: " + minDays + ", max days: " + maxDays);
 	callTimes = [];
 	callDeltas = [];
-	callVols = [];
+	callVols = {};
 	callStrikes = [];
 	putTimes = [];
 	putDeltas = [];
-	putVols = [];
+	putVols = {};
 	putStrikes = [];
 	
 	for (var key in optionsByName) {
@@ -111,7 +117,8 @@ function parseOptionData() {
 		var delta = parseFloat(data['delta']);
 		var vol = parseFloat(data['vol']);
 		var strike = parseInt(data['strike']);
-		if (vol > minVol && vol < maxVol 
+		if (vol > minVol 
+			&& vol < maxVol 
 			&& Math.abs(delta) > minDelta 
 			&& Math.abs(delta) < maxDelta
 			&& strike > minStrike
@@ -119,57 +126,108 @@ function parseOptionData() {
 			&& days > minDays
 			&& days < maxDays) {
 			if (delta > 0) {
-				callTimes.unshift(days);
-				callDeltas.unshift(delta);
-				callVols.unshift(vol);
-				callStrikes.unshift(strike);
+				if (!callDeltas.includes(delta)) {
+					callDeltas.unshift(delta);
+				}
+				if (!callStrikes.includes(strike)) {
+					callStrikes.unshift(strike);
+				}
+				if (!callTimes.includes(days)) {
+					callTimes.unshift(days);
+				}
+				if (!(days in callVols)) {
+					callVols[days] = {};
+				}
+				if (strikeView) {
+					callVols[days][strike] = vol;
+				} else {
+					callVols[days][delta] = vol;
+				}
 			} else if (delta < 0) {
-				putTimes.unshift(days);
-				putDeltas.unshift(delta);
-				putVols.unshift(vol);
-				putStrikes.unshift(strike);
+				if (!putDeltas.includes(delta)) {
+					putDeltas.unshift(delta);
+				}
+				if (!putStrikes.includes(strike)) {
+					putStrikes.unshift(strike);
+				}
+				if (!putTimes.includes(days)) {
+					putTimes.unshift(days);
+				}
+				if (!(days in putVols)) {
+					putVols[days] = {};
+				}
+				if (strikeView) {
+					putVols[days][strike] = vol;
+				} else {
+					putVols[days][delta] = vol;
+				}
 			}
 		}
-		// if (vol > minVol 
-		// 	&& vol < maxVol 
-		// 	&& Math.abs(delta) > minDelta 
-		// 	&& Math.abs(delta) < maxDelta
-		// 	&& strike > minStrike
-		// 	&& strike < maxStrike
-		// 	&& days > minDays
-		// 	&& days < maxDays) {
-		// 	if (delta > 0) {
-		// 		if (!callDeltas.includes(delta)) {
-		// 			callDeltas.unshift(delta);
-		// 		}
-		// 		if (!callTimes.includes(days)) {
-		// 			callTimes.unshift(days);
-		// 		}
-		// 		if (!(delta in callVols)) {
-		// 			callVols[delta] = {};
-		// 		}
-		// 		callVols[delta][days] = vol;
-		// 		console.log("Added to call vols with delta: " + delta + ", days: " + days + ", vol: " + vol);
-		// 	} else if (delta < 0) {
-		// 		if (!putDeltas.includes(delta)) {
-		// 			putDeltas.unshift(delta);
-		// 		}
-		// 		if (!putTimes.includes(days)) {
-		// 			putTimes.unshift(days);
-		// 		}
-		// 		if (!(delta in putVols)) {
-		// 			putVols[delta] = {};
-		// 		}
-		// 		putVols[delta][days] = vol;
-		// 		console.log("Added to put vols with delta: " + delta + ", days: " + days + ", vol: " + vol);
-		// 	}
-		// }
 	}
+	callDeltas.sort(numberSort);
+	callStrikes.sort(numberSort);
+	callTimes.sort(numberSort);
+	putDeltas.sort(numberSort);
+	putStrikes.sort(numberSort);
+	putTimes.sort(numberSort);
 }
 
 function unpack(rows, key) {
   return rows.map(function(row) { return row[key]; });
 }
+
+
+function getVol(delta, time) {
+	console.log("Getting vol with delta " + delta + ", time " + time);
+	if (delta > 0) {
+		var vol = callVols[time][delta];
+		if (!vol) {
+			if (!callVols[time][delta]) {
+				// Get nearest vols
+				var deltaArray = Object.keys(callVols[time]);
+				var deltaIndex = null;
+				var closestDelta = deltaArray.reduce(function(prev, curr) {
+				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				});
+				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
+				if (closestDeltaIndex > -1) {
+					deltaArray.splice(closestDeltaIndex, 1);
+				}
+				var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
+				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				});
+				console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
+				vol = (callVols[time][closestDelta] + callVols[time][nextClosestDelta]) / 2;
+				console.log("Returning interpolated vol: " + vol);
+			}
+		}
+	}
+	if (delta < 0) {
+		var vol = putVols[time][delta];
+		if (!vol) {
+			if (!putVols[time][delta]) {
+				// Get nearest vols
+				var deltaArray = Object.keys(putVols[time]);
+				var deltaIndex = null;
+				var closestDelta = deltaArray.reduce(function(prev, curr) {
+				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				});
+				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
+				if (closestDeltaIndex > -1) {
+					deltaArray.splice(closestDeltaIndex, 1);
+				}
+				var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
+				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				});
+				console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
+				vol = (putVols[time][closestDelta] + putVols[time][nextClosestDelta]) / 2;
+				console.log("Returning interpolated vol: " + vol);
+			}
+		}
+	}
+	return vol;
+}
+
 
 function plotVolSurface(update=false) {
   console.log("Parsing option data");
@@ -191,25 +249,67 @@ function plotVolSurface(update=false) {
   }
   callGraphData = new vis.DataSet();
   for (i = 0; i < xCallData.length; i++) {
-  	callGraphData.add({
-  		x: xCallData[i],
-  		y: callTimes[i],
-  		z: callVols[i],
-  		// style: callVols[i]
-  	});
+  	var xData = xCallData[i];
+  	for (j = 0; j < callTimes.length; j++) {
+  		var yData = callTimes[j];
+	  	var zData = getVol(xData, yData);
+	  	callGraphData.add({
+	  		x: xData,
+	  		y: yData,
+	  		z: zData,
+	  		style: zData
+	  	});
+  	}
   }
 	var options = {
 	  width:  '1000px',
 	  height: '1000px',
 	  style: 'surface',
-	  // showPerspective: true,
-	  // showGrid: true,
-	  // showShadow: false,
-	  // keepAspectRatio: true,
-	  // verticalRatio: 0.5
+	  showPerspective: true,
+	  showGrid: true,
+	  showShadow: false,
+	  keepAspectRatio: false,
+	  verticalRatio: 0.7,
+	  xLabel: xAxisName,
+	  yLabel: "Days to Expiration",
+	  zLabel: "Volatility",
+	  zValueLabel: function (z) {return parseInt(z * 100) + '%'}
 	};
-  console.log("Call graph data: " + JSON.stringify(callGraphData));
-  callGraph = new vis.Graph3d(callContainer, callGraphData, options);
+  putGraphData = new vis.DataSet();
+  for (i = 0; i < xPutData.length; i++) {
+  	var xData = xPutData[i];
+  	for (j = 0; j < putTimes.length; j++) {
+  		var yData = putTimes[j];
+	  	var zData = getVol(xData, yData);
+	  	putGraphData.add({
+	  		x: xData,
+	  		y: yData,
+	  		z: zData,
+	  		style: zData
+	  	});
+  	}
+  }
+	var options = {
+	  width:  '1000px',
+	  height: '1000px',
+	  style: 'surface',
+	  showPerspective: true,
+	  showGrid: true,
+	  showShadow: false,
+	  keepAspectRatio: false,
+	  verticalRatio: 0.7,
+	  xLabel: xAxisName,
+	  yLabel: "Days to Expiration",
+	  zLabel: "Volatility",
+	  zValueLabel: function (z) {return parseInt(z * 100) + '%'}
+	};
+  if (update) {
+  	callGraph.setData(callGraphData);
+  	putGraph.setData(putGraphData);
+  } else {
+  	callGraph = new vis.Graph3d(callContainer, callGraphData, options);
+  	putGraph = new vis.Graph3d(putContainer, putGraphData, options);
+  }
 }
 
 function refresh(e) {
