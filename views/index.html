@@ -41,7 +41,7 @@
 			<div class="limit">
 				<h3>
 					<label for="maxStrike">Max Strike:</label>
-					<span><input id="maxStrike" type="text" size="2" value="100000" name="maxStrike" onkeypress="refresh(event, this)"></input></span>
+					<span><input id="maxStrike" type="text" size="2" value="99999" name="maxStrike" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
@@ -73,16 +73,17 @@
 				</h3>
 			</div>
 		</div>
+		<div style="width: 100%; display: table; margin-left: 300px;">
+			<div style="display: table-row;">
+				<div style="display: table-cell;"><h2>Calls</h2></div>
+				<div style="display: table-cell;"><h2>Puts</h2></div>
+			</div>
+			<div style="display: table-row;">
+				<div style="width: 500px; display: table-cell;" id="callGraph"></div>
+				<div style="display: table-cell;" id="putGraph"></div>
+			</div>
 		<div>
-			<h2>Calls</h2>
-		</div>
-		<div class="plot" id="calls" style="width:1000px;height:1000px;"></div>
-		<div>
-			<h2>Puts</h2>
-		</div>
-		<div class="plot" id="puts" style="width:1000px;height:1000px;"></div>
-		<div>
-			<script src="../assets/plotly.js"></script>
+			<script src="../assets/vis.js"></script>
 			<script src="../assets/visualizer.js"></script>
 		</div>
 	</body>
