@@ -1,67 +1,3 @@
-<!-- <!DOCTYPE HTML>
-<html>
-<head>
-  <title>Graph 3D demo</title>
-
-  <style>
-    body {font: 10pt arial;}
-  </style>
-
-  <script src="/assets/vis.js"></script>
-
-  <script type="text/javascript">
-  var data = null;
-  var graph = null;
-
-  function custom(x, y) {
-    return (Math.sin(x/50) * Math.cos(y/50) * 50 + 50);
-  }
-
-  // Called when the Visualization API is loaded.
-  function drawVisualization() {
-    // Create and populate a data table.
-    var data = new vis.DataSet();
-    // create some nice looking data with sin/cos
-    var steps = 50;  // number of datapoints will be steps*steps
-    var axisMax = 314;
-    var axisStep = axisMax / steps;
-    for (var x = 0; x < axisMax; x+=axisStep) {
-      for (var y = 0; y < axisMax; y+=axisStep) {
-        var value = custom(x, y);
-        data.add({
-          x: x,
-          y: y,
-          z: value,
-          style: value
-        });
-      }
-    }
-
-    // specify options
-    var options = {
-      width:  '600px',
-      height: '600px',
-      style: 'surface',
-      showPerspective: true,
-      showGrid: true,
-      showShadow: false,
-      keepAspectRatio: true,
-      verticalRatio: 0.5
-    };
-
-    console.log("Data: " + JSON.stringify(data));
-
-    // create a graph3d
-    var container = document.getElementById('mygraph');
-    graph3d = new vis.Graph3d(container, data, options);
-  }
-  </script>
-</head>
-
-<body onload="drawVisualization();">
-  <div id="mygraph"></div>
-</body>
-</html> -->
 <!DOCTYPE html>
 <head>
 	<title> 0xhedge </title>
@@ -105,7 +41,7 @@
 			<div class="limit">
 				<h3>
 					<label for="maxStrike">Max Strike:</label>
-					<span><input id="maxStrike" type="text" size="2" value="100000" name="maxStrike" onkeypress="refresh(event, this)"></input></span>
+					<span><input id="maxStrike" type="text" size="2" value="99999" name="maxStrike" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
@@ -137,14 +73,15 @@
 				</h3>
 			</div>
 		</div>
-		<div>
-			<h2>Calls</h2>
-		</div>
-		<div id="callGraph" class="plot"></div>
-		<div>
-			<h2>Puts</h2>
-		</div>
-		<div id="putGraph" class="plot"></div>
+		<div style="width: 100%; display: table; margin-left: 300px;">
+			<div style="display: table-row;">
+				<div style="display: table-cell;"><h2>Calls</h2></div>
+				<div style="display: table-cell;"><h2>Puts</h2></div>
+			</div>
+			<div style="display: table-row;">
+				<div style="width: 500px; display: table-cell;" id="callGraph"></div>
+				<div style="display: table-cell;" id="putGraph"></div>
+			</div>
 		<div>
 			<script src="../assets/vis.js"></script>
 			<script src="../assets/visualizer.js"></script>

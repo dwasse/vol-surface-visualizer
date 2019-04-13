@@ -23,7 +23,7 @@ h3 {
 
 .plot {
 	margin: auto;
-	width: 80%;
+	width: 55%;
 }
 
 .sidenav {
@@ -32,11 +32,9 @@ h3 {
   width: 350px;
   position: fixed;
   height: 100%;
-/*  overflow: auto;
-*/}
+}
 
 .sidenav a {
-  /*display: block;*/
   color: black;
   padding: 16px;
   text-decoration: none;
@@ -45,7 +43,7 @@ h3 {
 div.content {
   margin-left: 200px;
   padding: 1px 16px;
-  height: 1000px;
+  height: 500px;
 }
 
 label {
@@ -72,9 +70,7 @@ form {
 }
 
 .switch {
-  /*vertical-align: middle;*/
   position: absolute;
-  /*display: inline-block;*/
   width: 30px;
   height: 17px;
 }
