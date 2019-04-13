@@ -82,7 +82,7 @@ class Server(SimpleHTTPRequestHandler):
         self.send_post_response(response_data)
 
 
-def run_server(server_class=HTTPServer, handler_class=Server, port=8000):
+def run_server(server_class=HTTPServer, handler_class=Server, port=config.port):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     msg = 'Server running on port ' + str(port) + '...'
@@ -257,7 +257,7 @@ if config.websockets:
     msg = "Running websocket..."
     print(msg)
     logging.info(msg)
-    factory = WebSocketServerFactory(u"ws://127.0.0.1:9000")
+    factory = WebSocketServerFactory(u"ws://" + config.ip + ":" + str(config.websocket_port))
     factory.protocol = VolWebsocket
     reactor.listenTCP(9000, factory)
     run_websocket()
