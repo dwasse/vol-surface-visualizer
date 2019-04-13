@@ -60,10 +60,9 @@ class Server(SimpleHTTPRequestHandler):
     def process_data(self, data):
         logging.info("Processing data: " + json.dumps(data))
         if data['action'] == 'getOptionData':
-            raw_option_data = load_last_data()
             response_data = {
                 'status': 'SUCCESS',
-                'data': compress_data(raw_option_data)
+                'data': compress_data(load_last_data())
             }
             self.send_post_response(response_data)
             logging.info("Sent response with data: " + json.dumps(response_data))
@@ -110,18 +109,6 @@ def save_data():
         if not os.path.exists(full_data_path):
             print("Creating directory: " + full_data_path)
             os.makedirs(full_data_path)
-        # savable_data = {
-        #     'timestamp': utc_timestamp,
-        #     'expiry': expiry,
-        #     'type': option.option_type,
-        #     'strike': str(option.strike),
-        #     'delta': str(option.delta),
-        #     'gamma': str(option.gamma),
-        #     'theta': str(option.theta),
-        #     'wvega': str(option.wvega),
-        #     'vega': str(option.vega),
-        #     'vol': str(option.vol)
-        # }
         savable_data = option.get_metadata(utc_timestamp)
         with open(full_data_path + option_name + ".json", 'a') as outfile:
             outfile.write(str(savable_data) + ', ')
@@ -185,7 +172,7 @@ def compress_data(data):
     for entry in data:
         compressed_entry = {}
         for element in entry:
-            if entry[element].replace('.', '', 1).isdigit():
+            if entry[element].replace('.', '', 1).isdigit() or 'e-' in entry[element]:
                 compressed_entry[element] = round(float(entry[element]), config.num_decimals)
             else:
                 compressed_entry[element] = entry[element]
@@ -259,17 +246,18 @@ logging.info(msg)
 server_thread = Thread(target=run_server)
 server_thread.start()
 
-msg = "Connecting to deribit websocket..."
-print(msg)
-logging.info(msg)
-deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg)
-deribit_ws_thread = Thread(target=deribit_websocket.start)
-deribit_ws_thread.start()
+if config.websockets:
+    msg = "Connecting to deribit websocket..."
+    print(msg)
+    logging.info(msg)
+    deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg)
+    deribit_ws_thread = Thread(target=deribit_websocket.start)
+    deribit_ws_thread.start()
 
-msg = "Running websocket..."
-print(msg)
-logging.info(msg)
-factory = WebSocketServerFactory(u"ws://127.0.0.1:9000")
-factory.protocol = VolWebsocket
-reactor.listenTCP(9000, factory)
-run_websocket()
+    msg = "Running websocket..."
+    print(msg)
+    logging.info(msg)
+    factory = WebSocketServerFactory(u"ws://127.0.0.1:9000")
+    factory.protocol = VolWebsocket
+    reactor.listenTCP(9000, factory)
+    run_websocket()
