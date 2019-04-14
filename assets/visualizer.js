@@ -190,15 +190,16 @@ function getVol(delta, time) {
 				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
 				});
 				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
-				if (closestDeltaIndex > -1) {
-					deltaArray.splice(closestDeltaIndex, 1);
-				}
-				var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
-				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
-				});
-				console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
-				vol = (callVols[time][closestDelta] + callVols[time][nextClosestDelta]) / 2;
-				console.log("Returning interpolated vol: " + vol);
+				vol = callVols[time][closestDelta];
+				// if (closestDeltaIndex > -1) {
+				// 	deltaArray.splice(closestDeltaIndex, 1);
+				// }
+				// var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
+				//   return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				// });
+				// console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
+				// vol = (callVols[time][closestDelta] + callVols[time][nextClosestDelta]) / 2;
+				// console.log("Returning interpolated vol: " + vol);
 			}
 		}
 	}
@@ -213,15 +214,16 @@ function getVol(delta, time) {
 				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
 				});
 				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
-				if (closestDeltaIndex > -1) {
-					deltaArray.splice(closestDeltaIndex, 1);
-				}
-				var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
-				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
-				});
-				console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
-				vol = (putVols[time][closestDelta] + putVols[time][nextClosestDelta]) / 2;
-				console.log("Returning interpolated vol: " + vol);
+				vol = putVols[time][closestDelta];
+				// if (closestDeltaIndex > -1) {
+				// 	deltaArray.splice(closestDeltaIndex, 1);
+				// }
+				// var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
+				//   return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+				// });
+				// console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
+				// vol = (putVols[time][closestDelta] + putVols[time][nextClosestDelta]) / 2;
+				// console.log("Returning interpolated vol: " + vol);
 			}
 		}
 	}
@@ -262,8 +264,8 @@ function plotVolSurface(update=false) {
   	}
   }
 	var options = {
-	  width:  '1000px',
-	  height: '1000px',
+	  width:  '700px',
+	  height: '700px',
 	  style: 'surface',
 	  showPerspective: true,
 	  showGrid: true,
@@ -290,8 +292,8 @@ function plotVolSurface(update=false) {
   	}
   }
 	var options = {
-	  width:  '1000px',
-	  height: '1000px',
+	  width:  '700px',
+	  height: '700px',
 	  style: 'surface',
 	  showPerspective: true,
 	  showGrid: true,
