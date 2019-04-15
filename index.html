@@ -61,26 +61,26 @@
 			<br>
 			<div class="limit">
 				<h3>
-					<label for="minDays">Min Days:</label>
+					<label for="minDays">Min Time:</label>
 					<span><input id="minDays" type="text" size="2" value="0" name="minDays" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 			<br>
 			<div class="limit">
 				<h3>
-					<label for="maxDays">Max Days:</label>
+					<label for="maxDays">Max Time:</label>
 					<span><input id="maxDays" type="text" size="2" value="365" name="maxDays" onkeypress="refresh(event, this)"></input></span>
 				</h3>
 			</div>
 		</div>
-		<div style="width: 100%; display: table; margin-left: 300px;">
+		<div style="width: 50%; display: table; margin-left: 25%; margin-right: 200px">
 			<div style="display: table-row;">
-				<div style="display: table-cell;"><h2>Calls</h2></div>
-				<div style="display: table-cell;"><h2>Puts</h2></div>
+				<div style="display: table-cell; width: 50%;"><h2>Calls</h2></div>
+				<div style="display: table-cell; width: 50%; margin-left: 200px;"><h2>Puts</h2></div>
 			</div>
 			<div style="display: table-row;">
 				<div style="width: 500px; display: table-cell;" id="callGraph"></div>
-				<div style="display: table-cell;" id="putGraph"></div>
+				<div style="display: table-cell; margin-left: 200px;" id="putGraph"></div>
 			</div>
 		<div>
 			<script src="vol-surface-visualizer/assets/vis.js"></script>

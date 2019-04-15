@@ -131,15 +131,9 @@ function parseOptionData() {
 			&& days > minDays
 			&& days < maxDays) {
 			if (delta > 0) {
-				if (!callDeltas.includes(delta)) {
-					callDeltas.unshift(delta);
-				}
-				if (!callStrikes.includes(strike)) {
-					callStrikes.unshift(strike);
-				}
-				if (!callTimes.includes(days)) {
-					callTimes.unshift(days);
-				}
+				callDeltas.unshift(delta);
+				callStrikes.unshift(strike);
+				callTimes.unshift(days);
 				if (!(days in callVols)) {
 					callVols[days] = {};
 				}
@@ -149,15 +143,11 @@ function parseOptionData() {
 					callVols[days][delta] = vol;
 				}
 			} else if (delta < 0) {
-				if (!putDeltas.includes(delta)) {
-					putDeltas.unshift(delta);
-				}
-				if (!putStrikes.includes(strike)) {
-					putStrikes.unshift(strike);
-				}
-				if (!putTimes.includes(days)) {
-					putTimes.unshift(days);
-				}
+				console.log("Adding delta for option: " + key + ": " + delta);
+				putDeltas.unshift(delta);
+				console.log("Adding strike for option: " + key + ": " + strike);
+				putStrikes.unshift(strike);
+				putTimes.unshift(days);
 				if (!(days in putVols)) {
 					putVols[days] = {};
 				}
@@ -182,7 +172,7 @@ function unpack(rows, key) {
 }
 
 
-function getVol(delta, time) {
+function getVolByDelta(delta, time) {
 	if (delta > 0) {
 		var vol = callVols[time][delta];
 		if (!vol) {
@@ -214,6 +204,39 @@ function getVol(delta, time) {
 	return vol;
 }
 
+function getVolByStrike(strike, delta, time) {
+	if (delta > 0) {
+		var vol = callVols[time][strike];
+		if (!vol) {
+			if (!callVols[time][strike]) {
+				// Get nearest vol
+				var strikeArray = Object.keys(callVols[time]);
+				var closestStrike = strikeArray.reduce(function(prev, curr) {
+				  return (Math.abs(curr - strike) < Math.abs(prev - strike) ? curr : prev);
+				});
+				vol = callVols[time][closestStrike];
+			}
+		}
+	}
+	if (delta < 0) {
+		var vol = putVols[time][strike];
+		if (!vol) {
+			if (!putVols[time][strike]) {
+				// Get nearest vol
+				var strikeArray = Object.keys(putVols[time]);
+				if (strikeArray.length > 0) {
+					var closestStrike = strikeArray.reduce(function(prev, curr) {
+					  return (Math.abs(curr - strike) < Math.abs(prev - strike) ? curr : prev);
+					});
+					vol = putVols[time][closestStrike];
+				}
+			}
+		}
+	}
+	console.log("Got vol with strike " + strike + ", delta " + delta + ", time " + time + ", vol " + vol);
+	return vol;
+}
+
 
 function plotVolSurface(update=false) {
   console.log("Parsing option data");
@@ -233,13 +256,19 @@ function plotVolSurface(update=false) {
   	xPutData = putDeltas;
   	console.log("Plotting in delta view");
   }
-  callGraphData = new vis.DataSet();
+	callGraphData = new vis.DataSet();
+	console.log("Num call strikes: " + callStrikes.length + ", num call deltas: " + callDeltas.length);
   for (i = 0; i < callDeltas.length; i++) {
 		var delta = callDeltas[i];
 		var xData = xCallData[i];
   	for (j = 0; j < callTimes.length; j++) {
-  		var yData = callTimes[j];
-	  	var zData = getVol(delta, yData);
+			var yData = callTimes[j];
+			var zData;
+			if (strikeView) {
+				zData = getVolByStrike(xData, delta, yData);
+			} else {
+				zData = getVolByDelta(delta, yData);
+			}
 	  	callGraphData.add({
 	  		x: xData,
 	  		y: yData,
@@ -247,10 +276,10 @@ function plotVolSurface(update=false) {
 	  		style: zData
 	  	});
   	}
-  }
+	}
 	var options = {
-	  width:  '700px',
-	  height: '700px',
+	  width:  '600px',
+	  height: '600px',
 	  style: 'surface',
 	  showPerspective: true,
 	  showGrid: true,
@@ -268,8 +297,12 @@ function plotVolSurface(update=false) {
   	var xData = xPutData[i];
   	for (j = 0; j < putTimes.length; j++) {
   		var yData = putTimes[j];
-			var zData = getVol(delta, yData);
-			console.log("Adding put data: x " + xData + ", y " + yData + ", z " + zData);
+			var zData;
+			if (strikeView) {
+				zData = getVolByStrike(xData, delta, yData);
+			} else {
+				zData = getVolByDelta(delta, yData);
+			}
 	  	putGraphData.add({
 	  		x: xData,
 	  		y: yData,
@@ -279,8 +312,8 @@ function plotVolSurface(update=false) {
   	}
   }
 	var options = {
-	  width:  '700px',
-	  height: '700px',
+	  width:  '600px',
+	  height: '600px',
 	  style: 'surface',
 	  showPerspective: true,
 	  showGrid: true,
@@ -292,9 +325,17 @@ function plotVolSurface(update=false) {
 	  zLabel: "Volatility",
 	  zValueLabel: function (z) {return parseInt(z * 100) + '%'}
 	};
-  if (update) {
-  	callGraph.setData(callGraphData);
-  	putGraph.setData(putGraphData);
+	if (update) {
+		try {
+			callGraph.setData(callGraphData);
+		} catch (err) {
+			console.log("Error plotting call graph: " + err.message);
+		}
+		try {
+			putGraph.setData(putGraphData);
+		} catch (err) {
+			console.log("Error plotting put graph: " + err.message);
+		}
   } else {
   	callGraph = new vis.Graph3d(callContainer, callGraphData, options);
   	putGraph = new vis.Graph3d(putContainer, putGraphData, options);
