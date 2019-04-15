@@ -1,6 +1,8 @@
 from cryptopt.deribitREST import DeribitREST
 import websocket
 import json
+import time
+import logging
 import apis
 
 
@@ -14,14 +16,15 @@ class DeribitWebsocket:
         self.depth = depth
         self.ws = None
 
-    # def on_message(self, message):
-    #     print(message)
-
     def on_error(self, error):
-        print(error)
+        msg = time.ctime() + ": Deribit websocket error: " + str(error)
+        print(msg)
+        logging.info(msg)
 
     def on_close(self):
-        print("### closed ###")
+        msg = time.ctime() + ": Deribit websocket closed"
+        print(msg)
+        logging.info(msg)
 
     def on_open(self):
         data = {
@@ -35,8 +38,10 @@ class DeribitWebsocket:
             }
         }
         data['sig'] = self.client.generate_signature(data['action'], data['arguments'])
-
         self.ws.send(json.dumps(data))
+        msg = time.ctime() + ": Deribit websocket opened"
+        print(msg)
+        logging.info(msg)
 
     def start(self):
         websocket.enableTrace(True)
