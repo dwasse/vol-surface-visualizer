@@ -107,16 +107,18 @@ class TheoEngine:
             option.wvega = float(metadata['wvega'])
             option.vega = float(metadata['vega'])
             option.vol = float(metadata['vol'])
-            option.best_bid = ast.literal_eval(metadata['best_bid'])
-            option.best_ask = ast.literal_eval(metadata['best_ask'])
-            option.exchange_symbol = metadata['exchange_symbol']
+            if 'best_bid' in metadata:
+                option.best_bid = ast.literal_eval(metadata['best_bid'])
+            if 'best_ask' in metadata:
+                option.best_ask = ast.literal_eval(metadata['best_ask'])
+            if 'exchange_symbol' in metadata:
+                option.exchange_symbol = metadata['exchange_symbol']
             if option_type not in self.options:
                 self.options[option_type] = {}
             if expiry not in self.options[option_type]:
                 self.options[option_type][expiry] = {}
             self.options[option_type][expiry][strike] = option
             self.options_by_name[option.exchange_symbol] = option
-            logging.info("Parsed metadata for option: " + option.exchange_symbol)
 
     def iterate_options(self):
         for option_type in self.options:
