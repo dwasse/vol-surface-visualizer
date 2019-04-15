@@ -18,7 +18,7 @@ h2 {
 
 h3 {
 	color: #ffffff;
-	font-size: 20;
+	font-size: 10;
 }
 
 .plot {
@@ -29,7 +29,7 @@ h3 {
 .sidenav {
   margin-top: 100px;
   padding: 0;
-  width: 350px;
+  width: 20%;
   position: fixed;
   height: 100%;
 }
