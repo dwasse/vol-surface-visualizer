@@ -1,5 +1,6 @@
 
-
+var websocketIp = "127.0.0.1"
+var websocketPort = "9000"
 var optionData = {};
 var optionsByName = {};
 var minDelta = parseFloat(document.getElementById("minDelta").value);
@@ -341,20 +342,21 @@ function switchViews() {
 function processOptionUpdate(dataString) {
 	var data = JSON.parse(dataString);
 	optionsByName[data['exchange_symbol']] = data;
+	console.log("Number of options by name before parse: " + Object.keys(optionsByName).length);
 	parseOptionData();
+	console.log("Number of options by name after parse: " + Object.keys(optionsByName).length);
 	plotVolSurface(true);
-	console.log("Processed option update");
 }
 
 var socket = null;
 var isopen = false;
 
 window.onload = function() {
-	socket = new WebSocket("ws://127.0.0.1:9000");
+	socket = new WebSocket("ws://" + websocketIp + ":" + websocketPort);
 	socket.binaryType = "arraybuffer";
 
 	socket.onopen = function() {
-	   console.log("Connected!");
+	   console.log("Connected to " + websocketIp + ":" + websocketPort + "!");
 	   isopen = true;
 	}
 
