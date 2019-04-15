@@ -43,6 +43,10 @@ numberSort = function (a, b) {
 	return a - b;
 };
 
+reverseNumberSort = function (a, b) {
+	return b - a;
+};
+
 function sendDataPOST(requestData) {
   return new Promise(function(resolve, reject) {
     console.log('sending POST data: ' + JSON.stringify(requestData));
@@ -168,8 +172,8 @@ function parseOptionData() {
 	callDeltas.sort(numberSort);
 	callStrikes.sort(numberSort);
 	callTimes.sort(numberSort);
-	putDeltas.sort(numberSort);
-	putStrikes.sort(numberSort);
+	putDeltas.sort(reverseNumberSort);
+	putStrikes.sort(reverseNumberSort);
 	putTimes.sort(numberSort);
 }
 
@@ -179,7 +183,6 @@ function unpack(rows, key) {
 
 
 function getVol(delta, time) {
-	console.log("Getting vol with delta " + delta + ", time " + time);
 	if (delta > 0) {
 		var vol = callVols[time][delta];
 		if (!vol) {
@@ -231,11 +234,12 @@ function plotVolSurface(update=false) {
   	console.log("Plotting in delta view");
   }
   callGraphData = new vis.DataSet();
-  for (i = 0; i < xCallData.length; i++) {
-  	var xData = xCallData[i];
+  for (i = 0; i < callDeltas.length; i++) {
+		var delta = callDeltas[i];
+		var xData = xCallData[i];
   	for (j = 0; j < callTimes.length; j++) {
   		var yData = callTimes[j];
-	  	var zData = getVol(xData, yData);
+	  	var zData = getVol(delta, yData);
 	  	callGraphData.add({
 	  		x: xData,
 	  		y: yData,
@@ -259,11 +263,13 @@ function plotVolSurface(update=false) {
 	  zValueLabel: function (z) {return parseInt(z * 100) + '%'}
 	};
   putGraphData = new vis.DataSet();
-  for (i = 0; i < xPutData.length; i++) {
+  for (i = 0; i < putDeltas.length; i++) {
+		var delta = putDeltas[i]
   	var xData = xPutData[i];
   	for (j = 0; j < putTimes.length; j++) {
   		var yData = putTimes[j];
-	  	var zData = getVol(xData, yData);
+			var zData = getVol(delta, yData);
+			console.log("Adding put data: x " + xData + ", y " + yData + ", z " + zData);
 	  	putGraphData.add({
 	  		x: xData,
 	  		y: yData,
