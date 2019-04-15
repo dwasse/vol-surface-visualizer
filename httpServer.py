@@ -678,6 +678,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             else:
                 return self.list_directory(path)
         ctype = self.guess_type(path)
+        if not len(path):
+            path = "index.html"
+            ctype = "text/html"
         try:
             if path[0] == '/':
                 path = path[1:]
