@@ -184,23 +184,12 @@ function getVol(delta, time) {
 		var vol = callVols[time][delta];
 		if (!vol) {
 			if (!callVols[time][delta]) {
-				// Get nearest vols
+				// Get nearest vol
 				var deltaArray = Object.keys(callVols[time]);
-				var deltaIndex = null;
 				var closestDelta = deltaArray.reduce(function(prev, curr) {
 				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
 				});
-				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
 				vol = callVols[time][closestDelta];
-				// if (closestDeltaIndex > -1) {
-				// 	deltaArray.splice(closestDeltaIndex, 1);
-				// }
-				// var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
-				//   return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
-				// });
-				// console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
-				// vol = (callVols[time][closestDelta] + callVols[time][nextClosestDelta]) / 2;
-				// console.log("Returning interpolated vol: " + vol);
 			}
 		}
 	}
@@ -208,27 +197,14 @@ function getVol(delta, time) {
 		var vol = putVols[time][delta];
 		if (!vol) {
 			if (!putVols[time][delta]) {
-				// Get nearest vols
+				// Get nearest vol
 				var deltaArray = Object.keys(putVols[time]);
-				// var deltaIndex = null;
-				console.log("Delta array before reduce: " + JSON.stringify(Object.keys(putVols[time])));
 				if (deltaArray.length > 0) {
 					var closestDelta = deltaArray.reduce(function(prev, curr) {
 					  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
 					});
-					var closestDeltaIndex = deltaArray.indexOf(closestDelta);
 					vol = putVols[time][closestDelta];
 				}
-				
-				// if (closestDeltaIndex > -1) {
-				// 	deltaArray.splice(closestDeltaIndex, 1);
-				// }
-				// var nextClosestDelta = deltaArray.reduce(function(prev, curr) {
-				//   return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
-				// });
-				// console.log("Closest delta: " + closestDelta + ", next closest delta: " + nextClosestDelta);
-				// vol = (putVols[time][closestDelta] + putVols[time][nextClosestDelta]) / 2;
-				// console.log("Returning interpolated vol: " + vol);
 			}
 		}
 	}
