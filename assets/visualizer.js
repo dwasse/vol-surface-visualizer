@@ -209,12 +209,16 @@ function getVol(delta, time) {
 			if (!putVols[time][delta]) {
 				// Get nearest vols
 				var deltaArray = Object.keys(putVols[time]);
-				var deltaIndex = null;
-				var closestDelta = deltaArray.reduce(function(prev, curr) {
-				  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
-				});
-				var closestDeltaIndex = deltaArray.indexOf(closestDelta);
-				vol = putVols[time][closestDelta];
+				// var deltaIndex = null;
+				console.log("Delta array before reduce: " + JSON.stringify(Object.keys(putVols[time])));
+				if (deltaArray.length > 0) {
+					var closestDelta = deltaArray.reduce(function(prev, curr) {
+					  return (Math.abs(curr - delta) < Math.abs(prev - delta) ? curr : prev);
+					});
+					var closestDeltaIndex = deltaArray.indexOf(closestDelta);
+					vol = putVols[time][closestDelta];
+				}
+				
 				// if (closestDeltaIndex > -1) {
 				// 	deltaArray.splice(closestDeltaIndex, 1);
 				// }
