@@ -5,6 +5,7 @@ import json
 import sys
 import os
 import traceback
+import datetime
 from cryptopt.theoEngine import TheoEngine
 from threading import Thread
 from volWebsocket import VolWebsocket
@@ -52,6 +53,8 @@ def on_deribit_msg(msg):
                     print(log_msg)
                     logging.info(log_msg)
                     VolWebsocket.option_update(option.get_metadata())
+                    save_data(option)
+
     except Exception as e:
         logging.error("Error processing msg: " + str(e))
         type_, value_, traceback_ = sys.exc_info()
@@ -84,6 +87,23 @@ def load_last_data():
     print(msg)
     logging.info(msg)
     return options
+
+
+def save_data(option):
+    global theo_engine
+    today = datetime.datetime.today().strftime('%Y-%m-%d')
+    utc_timestamp = str(datetime.datetime.utcnow())
+    option_name = str(int(option.strike)) + "_" + option.option_type
+    expiry = str(option.expiry)[:10]
+    print("Saving data for option: " + option_name + " with expiry: " + expiry)
+    full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+        + config.delimiter + today + config.delimiter + expiry + config.delimiter
+    if not os.path.exists(full_data_path):
+        print("Creating directory: " + full_data_path)
+        os.makedirs(full_data_path)
+    savable_data = option.get_metadata(utc_timestamp)
+    with open(full_data_path + option_name + ".json", 'a') as outfile:
+        outfile.write(str(savable_data) + ', ')
 
 
 if config.load_data and config.websockets:
