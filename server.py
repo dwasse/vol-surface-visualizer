@@ -16,10 +16,10 @@ import os
 import sys
 import traceback
 
-data_path = os.getcwd() + config.delimiter + 'optionData' + config.delimiter
-if not os.path.exists(data_path):
-    print("Creating data directory: " + data_path)
-    os.makedirs(data_path)
+
+if not os.path.exists(config.data_path):
+    print("Creating data directory: " + config.data_path)
+    os.makedirs(config.data_path)
     config.load_data = False
 
 
@@ -91,11 +91,6 @@ def run_server(server_class=HTTPServer, handler_class=Server, port=config.port):
     httpd.serve_forever()
 
 
-def run_websocket():
-    global reactor
-    reactor.run()
-
-
 def save_data():
     global theo_engine
     today = datetime.datetime.today().strftime('%Y-%m-%d')
@@ -104,7 +99,7 @@ def save_data():
         option_name = str(int(option.strike)) + "_" + option.option_type
         expiry = str(option.expiry)[:10]
         print("Saving data for option: " + option_name + " with expiry: " + expiry)
-        full_data_path = data_path + theo_engine.underlying_pair.replace('/', '-') \
+        full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
             + config.delimiter + today + config.delimiter + expiry + config.delimiter
         if not os.path.exists(full_data_path):
             print("Creating directory: " + full_data_path)
@@ -149,13 +144,13 @@ def get_immediate_subdirectories(a_dir):
 def load_last_data():
     global theo_engine
     options = []
-    pairs = get_immediate_subdirectories(data_path)
+    pairs = get_immediate_subdirectories(config.data_path)
     for pair in pairs:
-        dates = get_immediate_subdirectories(data_path + pair)
+        dates = get_immediate_subdirectories(config.data_path + pair)
         date = str(dates[-1])
-        expirys = get_immediate_subdirectories(data_path + pair + config.delimiter + date)
+        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + date)
         for expiry in expirys:
-            file_path = data_path + pair + config.delimiter + date + config.delimiter + expiry
+            file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
             files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
@@ -178,48 +173,6 @@ def compress_data(data):
                 compressed_entry[element] = entry[element]
         compressed_data.append(compressed_entry)
     return compressed_data
-
-
-def on_deribit_msg(msg):
-    global reactor
-    global theo_engine
-    logging.info("Processing deribit msg: " + msg)
-    msg_data = ast.literal_eval(msg.replace("true", "True").replace("false", "False"))
-    try:
-        notifications = msg_data['notifications']
-        for notif in notifications:
-            if notif["success"]:
-                logging.info("Processing notif: " + json.dumps(notif))
-                result = notif["result"]
-                instrument = result["instrument"]
-                option = theo_engine.get_option(instrument)
-                logging.info("msg instrument: " + instrument + ", theo engine instruments: "
-                             + json.dumps(list(theo_engine.options_by_name.keys())))
-                if option is not None:
-                    logging.info("Got option: " + option.exchange_symbol)
-                    bids = result["bids"]
-                    asks = result["asks"]
-                    for bid in bids:
-                        option.best_bid = bid['price']
-                        logging.info("Set best bid for " + instrument + ": " + str(option.best_bid))
-                    for ask in asks:
-                        option = theo_engine.get_option(instrument)
-                        option.best_ask = ask['price']
-                        logging.info("Set best ask for " + instrument + ": " + str(option.best_ask))
-                    option.set_mid_market()
-                    vol = option.vol
-                    option.calc_implied_vol()
-                    logging.info("Updated implied vol for " + instrument + " from " + str(vol) + " to " + str(option.vol))
-                    log_msg = "Calling reactor.option_update()"
-                    print(log_msg)
-                    logging.info(log_msg)
-                    VolWebsocket.option_update(option.get_metadata())
-    except Exception as e:
-        logging.error("Error processing msg: " + str(e))
-        type_, value_, traceback_ = sys.exc_info()
-        logging.error('Type: ' + str(type_))
-        logging.error('Value: ' + str(value_))
-        logging.error('Traceback: ' + str(traceback.format_exc()))
 
 
 pair = config.pair
@@ -245,19 +198,3 @@ print(msg)
 logging.info(msg)
 server_thread = Thread(target=run_server)
 server_thread.start()
-
-if config.websockets:
-    msg = "Connecting to deribit websocket..."
-    print(msg)
-    logging.info(msg)
-    deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg)
-    deribit_ws_thread = Thread(target=deribit_websocket.start)
-    deribit_ws_thread.start()
-
-    msg = "Running websocket..."
-    print(msg)
-    logging.info(msg)
-    factory = WebSocketServerFactory(u"ws://" + config.ip + ":" + str(config.websocket_port))
-    factory.protocol = VolWebsocket
-    reactor.listenTCP(9000, factory)
-    run_websocket()
