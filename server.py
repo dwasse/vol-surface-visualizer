@@ -147,14 +147,19 @@ def load_last_data():
     pairs = get_immediate_subdirectories(config.data_path)
     for pair in pairs:
         dates = get_immediate_subdirectories(config.data_path + pair)
+        print("Dates: " + str(dates))
+        dates = sorted(dates, key=lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
+        print("Sorted dates: " + str(dates))
         date = str(dates[-1])
         expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + date)
+        print("Loading data from date: " + date);
         for expiry in expirys:
             file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
             files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
                     options.append(ast.literal_eval(data_file.read())[-1])
+        print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
     theo_engine.parse_option_metadata(options)
     msg = "Parsed option metadata"
     print(msg)
