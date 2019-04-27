@@ -47,7 +47,10 @@ def on_deribit_msg(msg):
                         logging.info("Set best ask for " + instrument + ": " + str(option.best_ask))
                     option.set_mid_market()
                     vol = option.vol
-                    option.calc_implied_vol()
+                    if option.mid_market is not None:
+                        option.calc_implied_vol()
+                    else:
+                        logging.info("Not calculating vol for option " + option.exchange_symbol + ", no mid market price")
                     logging.info("Updated implied vol for " + instrument + " from " + str(vol) + " to " + str(option.vol))
                     log_msg = "Calling reactor.option_update()"
                     print(log_msg)
@@ -75,9 +78,10 @@ def load_last_data():
     for pair in pairs:
         dates = get_immediate_subdirectories(config.data_path + pair)
         date = str(dates[-1])
-        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + date)
+        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
         for expiry in expirys:
-            file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
+            # file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
+            file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
             files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
@@ -98,11 +102,18 @@ def save_data(option):
     print("Saving data for option: " + option_name + " with expiry: " + expiry)
     full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
         + config.delimiter + today + config.delimiter + expiry + config.delimiter
+    temp_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+        + config.delimiter + "currentData" + config.delimiter + expiry + config.delimiter
     if not os.path.exists(full_data_path):
         print("Creating directory: " + full_data_path)
         os.makedirs(full_data_path)
+    if not os.path.exists(temp_data_path):
+        print("Creating temp data path: " + temp_data_path)
+        os.makedirs(temp_data_path)
     savable_data = option.get_metadata(utc_timestamp)
     with open(full_data_path + option_name + ".json", 'a') as outfile:
+        outfile.write(str(savable_data) + ', ')
+    with open(temp_data_path + option_name + ".json", 'w+') as outfile:
         outfile.write(str(savable_data) + ', ')
 
 

@@ -101,11 +101,18 @@ def save_data():
         print("Saving data for option: " + option_name + " with expiry: " + expiry)
         full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
             + config.delimiter + today + config.delimiter + expiry + config.delimiter
+        temp_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+            + config.delimiter + "currentData" + config.delimiter + expiry + config.delimiter
         if not os.path.exists(full_data_path):
             print("Creating directory: " + full_data_path)
             os.makedirs(full_data_path)
+        if not os.path.exists(temp_data_path):
+            print("Creating directory: " + temp_data_path)
+            os.makedirs(temp_data_path)
         savable_data = option.get_metadata(utc_timestamp)
         with open(full_data_path + option_name + ".json", 'a') as outfile:
+            outfile.write(str(savable_data) + ', ')
+        with open(temp_data_path + option_name + ".json", 'w+') as outfile:
             outfile.write(str(savable_data) + ', ')
 
 
@@ -146,19 +153,20 @@ def load_last_data():
     options = []
     pairs = get_immediate_subdirectories(config.data_path)
     for pair in pairs:
-        dates = get_immediate_subdirectories(config.data_path + pair)
-        print("Dates: " + str(dates))
-        dates = sorted(dates, key=lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
-        print("Sorted dates: " + str(dates))
-        date = str(dates[-1])
-        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + date)
-        print("Loading data from date: " + date);
+        #dates = get_immediate_subdirectories(config.data_path + pair)
+        #print("Dates: " + str(dates))
+        #dates = sorted(dates, key=lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
+        #print("Sorted dates: " + str(dates))
+        #date = str(dates[-1])
+        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
+        #print("Loading data from date: " + date);
         for expiry in expirys:
-            file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
+            file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
             files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
             for file in files:
                 with open(file_path + config.delimiter + file, 'r') as data_file:
                     options.append(ast.literal_eval(data_file.read())[-1])
+        file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter
         print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
     theo_engine.parse_option_metadata(options)
     msg = "Parsed option metadata"
