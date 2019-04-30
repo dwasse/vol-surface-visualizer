@@ -25,6 +25,7 @@ class DeribitWebsocket:
         msg = time.ctime() + ": Deribit websocket closed"
         print(msg)
         logging.info(msg)
+        print("Restarting...")
 
     def on_open(self):
         data = {
@@ -50,4 +51,5 @@ class DeribitWebsocket:
                                   on_close=self.on_close)
         self.ws.on_open = self.on_open
         self.ws.on_message = lambda ws, msg: self.on_message(msg)
-        self.ws.run_forever()
+        while True:
+            self.ws.run_forever()
