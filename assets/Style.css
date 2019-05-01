@@ -27,7 +27,7 @@ h2 {
   font-size: 40;
   padding-top: 100px;
   position: absolute;
-  top: 60%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -36,7 +36,7 @@ h3 {
   color: #ffffff;
   font-size: 10;
   position: absolute;
-  top: 30%;
+  top: 20%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
