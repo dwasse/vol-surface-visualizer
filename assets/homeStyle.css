@@ -1,0 +1,42 @@
+body {
+  background: #000000;
+  font-family: Inconsolata, monospace;
+}
+
+#bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+h1 {
+  text-align: center;
+  color: #ffffff;
+  font-size: 72;
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+h2 {
+  text-align: center;
+  color: #ffffff;
+  font-size: 40;
+  padding-top: 100px;
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+h3 {
+  color: #ffffff;
+  font-size: 10;
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

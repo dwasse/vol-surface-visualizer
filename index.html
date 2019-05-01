@@ -1,91 +1,22 @@
 <!DOCTYPE html>
 <head>
-	<title> 0xhedge </title>
-	<link rel="stylesheet" href="../assets/style.css">
-	<body>
-		<div>
-			<h1>BTC/USD Volatility Surface</h1>
-		</div>
-		<div class="sidenav">
-			<div>
-				<h3>
-					Delta View
-					<label class="switch">
-						<input id="viewSwitch" type="checkbox" onclick="switchViews()"><span class="slider round"></span>
-					</label>
-					&nbsp;&nbsp;&nbsp;&nbsp;Strike View
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="minDelta">Min Delta:</label>
-					<span><input id="minDelta" type="text" size="2" value="0.1" name="minDelta" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="maxDelta">Max Delta:</label>
-					<span><input id="maxDelta" type="text" size="2" value="0.5" name="maxDelta" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="minStrike">Min Strike:</label>
-					<span><input id="minStrike" type="text" size="2" value="0" name="minStrike" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="maxStrike">Max Strike:</label>
-					<span><input id="maxStrike" type="text" size="2" value="99999" name="maxStrike" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="minVol">Min Vol:</label>
-					<span><input id="minVol" type="text" size="2" value="0.1" name="minVol" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="maxVol">Max Vol:</label>
-					<span><input id="maxVol" type="text" size="2" value="2.0" name="maxVol" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="minDays">Min Time:</label>
-					<span><input id="minDays" type="text" size="2" value="0" name="minDays" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-			<br>
-			<div class="limit">
-				<h3>
-					<label for="maxDays">Max Time:</label>
-					<span><input id="maxDays" type="text" size="2" value="365" name="maxDays" onkeypress="refresh(event, this)"></input></span>
-				</h3>
-			</div>
-		</div>
-		<div style="width: 50%; display: table; margin-left: 25%; margin-right: 200px">
-			<div style="display: table-row;">
-				<div style="display: table-cell; width: 50%;"><h2>Calls</h2></div>
-				<div style="display: table-cell; width: 50%; margin-left: 200px;"><h2>Puts</h2></div>
-			</div>
-			<div style="display: table-row;">
-				<div style="width: 500px; display: table-cell;" id="callGraph"></div>
-				<div style="display: table-cell; margin-left: 200px;" id="putGraph"></div>
-			</div>
-		<div>
-			<script src="vol-surface-visualizer/assets/vis.js"></script>
-			<script src="vol-surface-visualizer/assets/visualizer.js"></script>
-		</div>
-	</body>
-  	
+  <title>0xhedge</title>
+  <link rel="stylesheet" href="../assets/homeStyle.css" />
+  <body>
+    <div>
+      <img src="background.png" , id="bg" alt="" />
+      <br />
+      <br />
+      <br />
+      <h1>Welcome to 0xhedge</h1>
+      <br />
+      <br />
+      <br />
+      <h3>Navigating the crypto madness</h3>
+      <br />
+      <br />
+      <br />
+      <a href="/BTCUSD/"><h2>BTC/USD Volatility Surface Visualizer</h2></a>
+    </div>
+  </body>
 </head>

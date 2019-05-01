@@ -1,29 +1,29 @@
 body {
-	background: #000000;
-	font-family: Inconsolata, monospace;
+  background: #000000;
+  font-family: Inconsolata, monospace;
 }
 
 h1 {
-	text-align: center;
-	color: #ffffff;
-	font-size: 72;
+  text-align: center;
+  color: #ffffff;
+  font-size: 72;
 }
 
 h2 {
-	text-align: center;
-	color: #ffffff;
-	font-size: 40;
-	padding-top: 100px;
+  text-align: center;
+  color: #ffffff;
+  font-size: 40;
+  padding-top: 100px;
 }
 
 h3 {
-	color: #ffffff;
-	font-size: 10;
+  color: #ffffff;
+  font-size: 10;
 }
 
 .plot {
-	margin: auto;
-	width: 55%;
+  margin: auto;
+  width: 55%;
 }
 
 .sidenav {
@@ -47,26 +47,26 @@ div.content {
 }
 
 label {
-    float: left;
-    vertical-align: middle;
+  float: left;
+  vertical-align: middle;
 }
 
 span {
-	display: block;
-    overflow: hidden;
-    padding: 0 4px 0 6px;
+  display: block;
+  overflow: hidden;
+  padding: 0 4px 0 6px;
 }
 
 input {
-    vertical-align: middle
+  vertical-align: middle;
 }
 
 form {
-	border: none;
+  border: none;
 }
 
 .limit {
-    margin-left: 30px;
+  margin-left: 30px;
 }
 
 .switch {
@@ -89,8 +89,8 @@ form {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
 .slider:before {
@@ -101,16 +101,16 @@ form {
   left: 2px;
   bottom: 2px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #2196f3;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #2196f3;
 }
 
 input:checked + .slider:before {
