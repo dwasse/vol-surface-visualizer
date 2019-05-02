@@ -1,4 +1,4 @@
-var websocketIp = "165.227.6.46";
+var websocketIp = "127.0.0.1";
 var websocketPort = "9000";
 var pair = document.currentScript.getAttribute("pair");
 var currency = pair.split("/")[0];
@@ -392,20 +392,21 @@ function switchViews() {
 function processOptionUpdate(dataString) {
   var data = JSON.parse(dataString);
   if (data["exchange_symbol"].includes(currency)) {
-
-  optionsByName[data["exchange_symbol"]] = data;
-  console.log(
-    "Number of options by name before parse: " +
-      Object.keys(optionsByName).length
-  );
-  parseOptionData();
-  console.log(
-    "Number of options by name after parse: " +
-      Object.keys(optionsByName).length
-  );
-  plotVolSurface(true);
+    optionsByName[data["exchange_symbol"]] = data;
+    console.log(
+      "Number of options by name before parse: " +
+        Object.keys(optionsByName).length
+    );
+    parseOptionData();
+    console.log(
+      "Number of options by name after parse: " +
+        Object.keys(optionsByName).length
+    );
+    plotVolSurface(true);
   } else {
-	  console.log("Option update data does not match currency: " + JSON.stringify(data));
+    console.log(
+      "Option update data does not match currency: " + JSON.stringify(data)
+    );
   }
 }
 
@@ -419,6 +420,19 @@ window.onload = function() {
   socket.onopen = function() {
     console.log("Connected to " + websocketIp + ":" + websocketPort + "!");
     isopen = true;
+    socket.send(
+      JSON.stringify({
+        action: "subscribe",
+        currency: currency
+      })
+    );
+    console.log(
+      "Sent subscription request: " +
+        JSON.stringify({
+          action: "subscribe",
+          currency: currency
+        })
+    );
   };
 
   socket.onmessage = function(e) {
