@@ -13,7 +13,7 @@ h2 {
   text-align: center;
   color: #ffffff;
   font-size: 40;
-  padding-top: 100px;
+  padding-top: 25px;
 }
 
 h3 {
@@ -27,7 +27,7 @@ h3 {
 }
 
 .sidenav {
-  margin-top: 100px;
+  margin-top: 25px;
   padding: 0;
   width: 20%;
   position: fixed;

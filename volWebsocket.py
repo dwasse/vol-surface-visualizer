@@ -33,12 +33,11 @@ class VolWebsocket(WebSocketServerProtocol):
         payload_dict = ast.literal_eval("{0}".format(payload.decode('utf8')))
         print("Received payload dict: " + str(payload_dict))
         if "action" in payload_dict and "currency" in payload_dict:
-            if (payload_dict["action"] === "subscribe") {
+            if (payload_dict["action"] == "subscribe"):
                 self.connection_currency_map[self].append(
                     payload_dict["currency"])
                 print("Added currency subscription for " +
                       payload_dict["currency"])
-            }
 
     def onClose(self, wasClean, code, reason):
         msg = time.ctime() + ": Vol websocket closed: {0}".format(reason)
