@@ -21,7 +21,8 @@ def run_websocket():
 
 def on_deribit_msg(msg):
     global reactor
-    global theo_engine
+    global theo_engines
+    global currency_to_pair
     logging.info("Processing deribit msg: " + msg)
     msg_data = ast.literal_eval(msg.replace("true", "True").replace("false", "False"))
     try:
@@ -31,9 +32,12 @@ def on_deribit_msg(msg):
                 logging.info("Processing notif: " + json.dumps(notif))
                 result = notif["result"]
                 instrument = result["instrument"]
-                option = theo_engine.get_option(instrument)
+                for currency in currency_to_pair:
+                    if currency in instrument:
+                        pair = currency_to_pair[currency]
+                option = theo_engines[pair].get_option(instrument)
                 logging.info("msg instrument: " + instrument + ", theo engine instruments: "
-                             + json.dumps(list(theo_engine.options_by_name.keys())))
+                             + json.dumps(list(theo_engines[pair].options_by_name.keys())))
                 if option is not None:
                     logging.info("Got option: " + option.exchange_symbol)
                     bids = result["bids"]
@@ -42,7 +46,7 @@ def on_deribit_msg(msg):
                         option.best_bid = bid['price']
                         logging.info("Set best bid for " + instrument + ": " + str(option.best_bid))
                     for ask in asks:
-                        option = theo_engine.get_option(instrument)
+                        option = theo_engines[pair].get_option(instrument)
                         option.best_ask = ask['price']
                         logging.info("Set best ask for " + instrument + ": " + str(option.best_ask))
                     option.set_mid_market()
@@ -56,7 +60,7 @@ def on_deribit_msg(msg):
                     print(log_msg)
                     logging.info(log_msg)
                     VolWebsocket.option_update(option.get_metadata())
-                    save_data(option)
+                    save_data(option, pair)
 
     except Exception as e:
         logging.error("Error processing msg: " + str(e))
@@ -71,38 +75,42 @@ def get_immediate_subdirectories(a_dir):
             if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def load_last_data():
+def load_last_data(pair_to_load):
+    print("Loading last data for " + pair_to_load)
     global theo_engine
     options = []
     pairs = get_immediate_subdirectories(config.data_path)
+    print("Loaded subdirectory pairs: " + str(pairs))
     for pair in pairs:
-        dates = get_immediate_subdirectories(config.data_path + pair)
-        date = str(dates[-1])
-        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
-        for expiry in expirys:
-            # file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
-            file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
-            files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
-            for file in files:
-                with open(file_path + config.delimiter + file, 'r') as data_file:
-                    options.append(ast.literal_eval(data_file.read())[-1])
-    theo_engine.parse_option_metadata(options)
+        if pair.replace('-', '/') == pair_to_load:
+            print("Found directory for " + pair)
+            dates = get_immediate_subdirectories(config.data_path + pair)
+            date = str(dates[-1])
+            expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
+            for expiry in expirys:
+                # file_path = config.data_path + pair + config.delimiter + date + config.delimiter + expiry
+                file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
+                files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
+                for file in files:
+                    with open(file_path + config.delimiter + file, 'r') as data_file:
+                        options.append(ast.literal_eval(data_file.read())[-1])
+    theo_engines[pair_to_load].parse_option_metadata(options)
     msg = "Parsed option metadata"
     print(msg)
     logging.info(msg)
     return options
 
 
-def save_data(option):
-    global theo_engine
+def save_data(option, pair):
+    global theo_engines
     today = datetime.datetime.today().strftime('%Y-%m-%d')
     utc_timestamp = str(datetime.datetime.utcnow())
     option_name = str(int(option.strike)) + "_" + option.option_type
     expiry = str(option.expiry)[:10]
     print("Saving data for option: " + option_name + " with expiry: " + expiry)
-    full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+    full_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
         + config.delimiter + today + config.delimiter + expiry + config.delimiter
-    temp_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+    temp_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
         + config.delimiter + "currentData" + config.delimiter + expiry + config.delimiter
     if not os.path.exists(full_data_path):
         print("Creating directory: " + full_data_path)
@@ -118,20 +126,25 @@ def save_data(option):
 
 
 if config.load_data and config.websockets:
-    pair = config.pair
-    theo_engine = TheoEngine(pair)
-    raw_option_data = load_last_data()
-    msg = "Loaded raw option data: " + json.dumps(raw_option_data)
-    # print(msg)
-    logging.info(msg)
-    theo_engine.get_underlying_price()
+    pairs = config.pairs
+    theo_engines = {}
+    currency_to_pair = {p.split('/')[0]: p for p in pairs}
+    print("Currencies: " + str(currency_to_pair))
+    for pair in pairs:
+        theo_engines[pair] = TheoEngine(pair)
+        raw_option_data = load_last_data(pair)
+        msg = "Loaded raw option data: " + json.dumps(raw_option_data)
+        # print(msg)
+        logging.info(msg)
+        theo_engines[pair].get_underlying_price()
 
-    msg = "Connecting to deribit websocket..."
-    print(msg)
-    logging.info(msg)
-    deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg)
-    deribit_ws_thread = Thread(target=deribit_websocket.start)
-    deribit_ws_thread.start()
+        msg = "Connecting to deribit websocket..."
+        print(msg)
+        logging.info(msg)
+        currency = pair.split('/')[0]
+        deribit_websocket = DeribitWebsocket(on_message=on_deribit_msg, currency=[currency])
+        deribit_ws_thread = Thread(target=deribit_websocket.start)
+        deribit_ws_thread.start()
 
     msg = "Running websocket..."
     print(msg)

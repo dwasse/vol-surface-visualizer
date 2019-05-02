@@ -12,7 +12,7 @@ logging.info("Starting log at " + time.ctime() + "...")
 delimiter = '/'
 data_path = os.getcwd() + delimiter + 'optionData' + delimiter
 
-pair = "BTC/USD"
+pairs = ["BTC/USD", "ETH/USD"]
 data_pull_freq = 60
 load_data = True
 websockets = True
