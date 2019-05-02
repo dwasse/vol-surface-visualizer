@@ -1,6 +1,8 @@
-var websocketIp = "127.0.0.1";
+var websocketIp = "165.227.6.46";
 var websocketPort = "9000";
 var pair = document.currentScript.getAttribute("pair");
+var currency = pair.split("/")[0];
+console.log("Got pair " + pair + ", currency " + currency);
 var optionData = {};
 var optionsByName = {};
 var minDelta = parseFloat(document.getElementById("minDelta").value);
@@ -389,6 +391,8 @@ function switchViews() {
 
 function processOptionUpdate(dataString) {
   var data = JSON.parse(dataString);
+  if (data["exchange_symbol"].includes(currency)) {
+
   optionsByName[data["exchange_symbol"]] = data;
   console.log(
     "Number of options by name before parse: " +
@@ -400,6 +404,9 @@ function processOptionUpdate(dataString) {
       Object.keys(optionsByName).length
   );
   plotVolSurface(true);
+  } else {
+	  console.log("Option update data does not match currency: " + JSON.stringify(data));
+  }
 }
 
 var socket = null;
