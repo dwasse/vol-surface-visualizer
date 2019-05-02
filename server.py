@@ -60,9 +60,10 @@ class Server(SimpleHTTPRequestHandler):
     def process_data(self, data):
         logging.info("Processing data: " + json.dumps(data))
         if data['action'] == 'getOptionData':
+            pair = data['pair']
             response_data = {
                 'status': 'SUCCESS',
-                'data': compress_data(load_last_data())
+                'data': compress_data(load_last_data(pair))
             }
             self.send_post_response(response_data)
             logging.info("Sent response with data: " + json.dumps(response_data))
@@ -91,17 +92,17 @@ def run_server(server_class=HTTPServer, handler_class=Server, port=config.port):
     httpd.serve_forever()
 
 
-def save_data():
-    global theo_engine
+def save_data(pair):
+    global theo_engines
     today = datetime.datetime.today().strftime('%Y-%m-%d')
     utc_timestamp = str(datetime.datetime.utcnow())
-    for option in theo_engine.iterate_options():
+    for option in theo_engines[pair].iterate_options():
         option_name = str(int(option.strike)) + "_" + option.option_type
         expiry = str(option.expiry)[:10]
         print("Saving data for option: " + option_name + " with expiry: " + expiry)
-        full_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+        full_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
             + config.delimiter + today + config.delimiter + expiry + config.delimiter
-        temp_data_path = config.data_path + theo_engine.underlying_pair.replace('/', '-') \
+        temp_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
             + config.delimiter + "currentData" + config.delimiter + expiry + config.delimiter
         if not os.path.exists(full_data_path):
             print("Creating directory: " + full_data_path)
@@ -117,24 +118,27 @@ def save_data():
 
 
 def theo_engine_runnable():
-    global theo_engine
+    global theo_engines
+    global pairs
     while True:
-        time.sleep(config.data_pull_freq)
-        pull_and_save()
+        for pair in pairs:
+            time.sleep(config.data_pull_freq)
+            theo_engines[pair].get_underlying_price()
+            pull_and_save(pair)
 
 
-def pull_and_save():
-    global theo_engine
+def pull_and_save(pair):
+    global theo_engines
     print("Pulling and saving at " + time.ctime())
     try:
         logging.info("Building options...")
-        theo_engine.build_deribit_options()
+        theo_engines[pair].build_deribit_options()
         logging.info("Calculating vols...")
-        theo_engine.calc_deribit_implied_vols()
+        theo_engines[pair].calc_deribit_implied_vols()
         logging.info("Calculating greeks...")
-        theo_engine.calc_all_greeks()
+        theo_engines[pair].calc_all_greeks()
         logging.info("Saving data...")
-        save_data()
+        save_data(pair)
     except Exception as e:
         logging.error("Exception pulling and saving data: " + str(e))
         type_, value_, traceback_ = sys.exc_info()
@@ -148,28 +152,25 @@ def get_immediate_subdirectories(a_dir):
             if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def load_last_data():
+def load_last_data(pair_to_load):
+    print("Loading last data for " + pair_to_load)
     global theo_engine
     options = []
     pairs = get_immediate_subdirectories(config.data_path)
+    print("Loaded subdirectory pairs: " + str(pairs))
     for pair in pairs:
-        #dates = get_immediate_subdirectories(config.data_path + pair)
-        #print("Dates: " + str(dates))
-        #dates = sorted(dates, key=lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
-        #print("Sorted dates: " + str(dates))
-        #date = str(dates[-1])
-        expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
-        #print("Loading data from date: " + date);
-        for expiry in expirys:
-            file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
-            files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
-            for file in files:
-                with open(file_path + config.delimiter + file, 'r') as data_file:
-                    options.append(ast.literal_eval(data_file.read())[-1])
-        file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter
-        print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
-    theo_engine.parse_option_metadata(options)
-    msg = "Parsed option metadata"
+        if pair.replace('-', '/') == pair_to_load:
+            print("Found directory for " + pair)
+            expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
+            for expiry in expirys:
+                file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
+                files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
+                for file in files:
+                    with open(file_path + config.delimiter + file, 'r') as data_file:
+                        options.append(ast.literal_eval(data_file.read())[-1])
+            print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
+    theo_engines[pair_to_load].parse_option_metadata(options)
+    msg = "Parsed option metadata for " + pair_to_load
     print(msg)
     logging.info(msg)
     return options
@@ -188,21 +189,23 @@ def compress_data(data):
     return compressed_data
 
 
-pair = config.pair
-theo_engine = TheoEngine(pair)
-raw_option_data = []
-if config.load_data:
-    raw_option_data = load_last_data()
-    msg = "Loaded raw option data: " + json.dumps(raw_option_data)
-    # print(msg)
-    logging.info(msg)
-else:
-    msg = "Pulling data from API and saving..."
-    print(msg)
-    logging.info(msg)
-    pull_and_save()
+pairs = config.pairs
+theo_engines = {}
+theo_engine_threads = {}
+for pair in pairs:
+    theo_engines[pair] = TheoEngine(pair)
+    raw_option_data = []
+    if config.load_data:
+        raw_option_data = load_last_data(pair)
+        msg = "Loaded raw option data for " + pair + ": " + json.dumps(raw_option_data)
+        # print(msg)
+        logging.info(msg)
+    else:
+        msg = "Pulling data from API and saving..."
+        print(msg)
+        logging.info(msg)
+        pull_and_save(pair)
 
-theo_engine.get_underlying_price()
 theo_engine_thread = Thread(target=theo_engine_runnable)
 theo_engine_thread.start()
 
