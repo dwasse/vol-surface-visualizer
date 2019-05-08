@@ -93,7 +93,10 @@ def load_last_data(pair_to_load):
                 files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
                 for file in files:
                     with open(file_path + config.delimiter + file, 'r') as data_file:
-                        options.append(ast.literal_eval(data_file.read())[-1])
+                        try:
+                            options.append(ast.literal_eval(data_file.read())[-1])
+                        except Exception as e:
+                            print("Exception loading data for file: " + file + ": " + str(e))
     theo_engines[pair_to_load].parse_option_metadata(options)
     msg = "Parsed option metadata"
     print(msg)
