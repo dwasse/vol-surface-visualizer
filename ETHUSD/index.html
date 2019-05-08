@@ -75,15 +75,32 @@
 				</h3>
 			</div>
 		</div>
-		<div style="width: 50%; display: table; margin-left: 25%; margin-right: 200px">
-			<div style="display: table-row;">
-				<div style="display: table-cell; width: 50%;"><h2>Calls</h2></div>
-				<div style="display: table-cell; width: 50%; margin-left: 200px;"><h2>Puts</h2></div>
-			</div>
-			<div style="display: table-row;">
-				<div style="width: 500px; display: table-cell;" id="callGraph"></div>
-				<div style="display: table-cell; margin-left: 200px;" id="putGraph"></div>
-			</div>
+		<table style="width: 50%; height: 100%; margin-left: 25%; margin-right: 25%; resize:both;">
+			<tr>
+				<td>
+					<div><h2>Calls</h2></div>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div style="text-align: center;">
+						<div style="width: 600px; margin-bottom: 100px; display: inline-block;" id="callGraph"></div>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div><h2>Puts</h2></div>
+				</td>
+			</tr>
+			<tr>
+				<td >
+					<div style="text-align: center;">
+						<div style="width: 600px; margin-bottom: 100px; display: inline-block;" id="putGraph"></div>
+					</div>
+				</td>
+			</tr>
+		</table>
 		<div>
 			<script src="../assets/vis.js"></script>
 			<script src="../assets/visualizer.js" pair="ETH/USD"></script>
