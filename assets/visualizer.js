@@ -301,14 +301,14 @@ function plotVolSurface(update = false) {
     }
   }
   var options = {
-    width: "600px",
-    height: "600px",
+    width: "100%",
+    height: "100%",
     style: "surface",
     showPerspective: true,
     showGrid: true,
     showShadow: false,
     keepAspectRatio: false,
-    verticalRatio: 0.7,
+    verticalRatio: 0.9,
     xLabel: xAxisName,
     yLabel: "Days to Expiration",
     zLabel: "Volatility",
@@ -344,7 +344,7 @@ function plotVolSurface(update = false) {
     showGrid: true,
     showShadow: false,
     keepAspectRatio: false,
-    verticalRatio: 0.7,
+    verticalRatio: 0.9,
     xLabel: xAxisName,
     yLabel: "Days to Expiration",
     zLabel: "Volatility",
