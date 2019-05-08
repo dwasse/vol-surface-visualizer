@@ -39,6 +39,7 @@ var callGraphData = null;
 var putGraphData = null;
 
 var strikeView = false;
+var liveData = false;
 var currentTimestamp = new Date().getTime();
 
 numberSort = function(a, b) {
@@ -380,13 +381,23 @@ function refresh(e) {
 
 function switchViews() {
   var viewSwitch = document.getElementById("viewSwitch");
-  if (viewSwitch.checked == true) {
+  if (viewSwitch.checked) {
     strikeView = true;
   } else {
     strikeView = false;
   }
   console.log("Switched strikeView: " + strikeView);
   plotVolSurface();
+}
+
+function switchLiveData() {
+  console.log("Switching live data...");
+  var liveDataSwitch = document.getElementById("liveDataSwitch");
+  if (liveDataSwitch.checked) {
+    connectLiveData();
+  } else {
+    disconnectLiveData();
+  }
 }
 
 function processOptionUpdate(dataString) {
@@ -413,7 +424,10 @@ function processOptionUpdate(dataString) {
 var socket = null;
 var isopen = false;
 
-window.onload = function() {
+function connectLiveData() {
+  console.log("Updating via REST...");
+  getOptionData();
+  console.log("Connecting websocket...");
   socket = new WebSocket("ws://" + websocketIp + ":" + websocketPort);
   socket.binaryType = "arraybuffer";
 
@@ -454,7 +468,14 @@ window.onload = function() {
     socket = null;
     isopen = false;
   };
-};
+}
+
+function disconnectLiveData() {
+  console.log("Closing websocket...");
+  if (socket) {
+    socket.close();
+  }
+}
 
 function sendText() {
   if (isopen) {
