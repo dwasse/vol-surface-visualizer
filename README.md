@@ -4,9 +4,9 @@ This repository holds the client and server for the volatility surface visualize
 
 You will need:
 
--`python3`
--`python3-pip`
--`npm`
+*`python3`
+*`python3-pip`
+*`npm`
 
 To install pypi dependencies, run `pip3 install -r requirements.txt`.
 
