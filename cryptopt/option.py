@@ -1,6 +1,6 @@
 import datetime
 import math
-import pytzs
+import pytz
 import logging
 import cryptopt.utils as utils
 from scipy.stats import norm
