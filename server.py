@@ -124,7 +124,8 @@ def theo_engine_runnable():
         for pair in pairs:
             time.sleep(config.data_pull_freq)
             theo_engines[pair].get_underlying_price()
-            pull_and_save(pair)
+            pull_thread = Thread(target=pull_and_save, kwargs={'pair': pair})
+            pull_thread.start()
 
 
 def pull_and_save(pair):
