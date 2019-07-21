@@ -2,6 +2,7 @@ import datetime
 import math
 import pytz
 import logging
+import utils
 from scipy.stats import norm
 
 
@@ -17,7 +18,7 @@ class Option:
                  interest_rate=0,
                  volatility=None,
                  underlying_price=None,
-                 time=datetime.datetime.now(),
+                 time=utils.get_current_time(),
                  exchange_symbol=None):
         self.underlying_pair = underlying_pair
         if not option_type == 'call' and not option_type == 'put':
@@ -50,7 +51,7 @@ class Option:
     def __str__(self):
         return self.underlying_pair + " " + str(self.strike) + " " + self.option_type + " with expiry " + str(self.expiry)
 
-    def get_time_left(self, current_datetime=datetime.datetime.now()):
+    def get_time_left(self, current_datetime=utils.get_current_time()):
         return (self.expiry - current_datetime).total_seconds() / (day * 365)
 
     def set_underlying_price(self, underlying_price):
@@ -58,7 +59,7 @@ class Option:
 
     def get_metadata(self, timestamp=None):
         if timestamp is None:
-            timestamp = str(datetime.datetime.utcnow())
+            timestamp = str(utils.get_current_time())
         return {
             'timestamp': timestamp,
             'expiry': str(self.expiry)[:10],
