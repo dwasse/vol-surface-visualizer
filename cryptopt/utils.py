@@ -3,4 +3,4 @@ import pytz
 
 
 def get_current_time():
-    return datetime.datetime.utcnow().replace(tzinfo=pytz)
+    return datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
