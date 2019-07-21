@@ -93,7 +93,7 @@ class TheoEngine:
         for metadata in option_metadata:
             expiry = metadata['expiry']
             [year, month, day] = expiry.split('-')
-            expiry = datetime.datetime(year=int(year), month=int(month), day=int(day))
+            expiry = datetime.datetime(year=int(year), month=int(month), day=int(day), tzinfo=pytz.UTC)
             option_type = metadata['type']
             strike = int(float(metadata['strike']))
             option = Option(underlying_pair=self.underlying_pair,
