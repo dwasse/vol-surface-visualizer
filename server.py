@@ -164,7 +164,7 @@ def load_last_data(pair_to_load):
             expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
             for expiry in expirys:
                 [year, month, day] = expiry.split('-')
-                expiry_datetime = datetime.datetime(year=year, month=month, day=day)
+                expiry_datetime = datetime.datetime(year=int(year), month=int(month), day=int(day))
                 if expiry_datetime > datetime.datetime.now():
                     file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
                     files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
