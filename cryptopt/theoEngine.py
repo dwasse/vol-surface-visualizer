@@ -2,7 +2,7 @@ import datetime
 import pytz
 import logging
 import ast
-import utils
+import cryptopt.utils as utils
 from .option import Option
 from .deribitREST import DeribitREST
 
