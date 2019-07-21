@@ -2,6 +2,7 @@ import datetime
 import pytz
 import logging
 import ast
+import utils
 from .option import Option
 from .deribitREST import DeribitREST
 
@@ -20,7 +21,7 @@ class TheoEngine:
         self.atm_volatility = atm_volatility
         self.interest_rate = interest_rate
         self.currency = self.underlying_pair.split('/')[0]
-        self.time = pytz.timezone('UTC').localize(datetime.datetime.now())
+        self.time = utils.get_current_time()
         self.options = {
             'call': {},
             'put': {}
@@ -124,7 +125,7 @@ class TheoEngine:
         expirys_to_remove = []
         for option_type in self.options:
             for expiry in self.options[option_type]:
-                if expiry > datetime.datetime.now():
+                if expiry > utils.get_current_time():
                     for strike in self.options[option_type][expiry]:
                         yield self.options[option_type][expiry][strike]
                 else:
