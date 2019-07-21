@@ -121,10 +121,20 @@ class TheoEngine:
             self.options_by_name[option.exchange_symbol] = option
 
     def iterate_options(self):
+        expirys_to_remove = []
         for option_type in self.options:
             for expiry in self.options[option_type]:
-                for strike in self.options[option_type][expiry]:
-                    yield self.options[option_type][expiry][strike]
+                if expiry > datetime.datetime.now():
+                    for strike in self.options[option_type][expiry]:
+                        yield self.options[option_type][expiry][strike]
+                else:
+                    logging.info("Expiry to remove: " + str(expiry))
+                    expirys_to_remove.append(expiry)
+        if expirys_to_remove:
+            for option_type in self.options:
+                self.options[option_type] = {k: v for k, v in self.options[option_type].items()
+                                             if k not in expirys_to_remove}
+                logging.info("Expirys after removal: " + str(self.options[option_type]))
 
     def calc_all_greeks(self):
         for option in self.iterate_options():

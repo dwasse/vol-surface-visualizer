@@ -163,14 +163,19 @@ def load_last_data(pair_to_load):
             print("Found directory for " + pair)
             expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
             for expiry in expirys:
-                file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
-                files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
-                for file in files:
-                    with open(file_path + config.delimiter + file, 'r') as data_file:
-                        try:
-                            options.append(ast.literal_eval(data_file.read())[-1])
-                        except Exception as e:
-                            print("Exception loading data for file: " + file + ": " + str(e))
+                [year, month, day] = expiry.split('-')
+                expiry_datetime = datetime.datetime(year=year, month=month, day=day)
+                if expiry_datetime > datetime.datetime.now():
+                    file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
+                    files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
+                    for file in files:
+                        with open(file_path + config.delimiter + file, 'r') as data_file:
+                            try:
+                                options.append(ast.literal_eval(data_file.read())[-1])
+                            except Exception as e:
+                                print("Exception loading data for file: " + file + ": " + str(e))
+                else:
+                    print("Stale expiry: " + str(expiry))
             print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
     theo_engines[pair_to_load].parse_option_metadata(options)
     msg = "Parsed option metadata for " + pair_to_load
