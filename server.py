@@ -23,6 +23,17 @@ if not os.path.exists(config.data_path):
     config.load_data = False
 
 
+def flush_logs():
+    with open(config.log_file, 'w'):
+        pass
+
+
+def log_flush_runnable():
+    while True:
+        time.sleep(3600 * 12)
+        flush_logs()
+
+
 class Server(SimpleHTTPRequestHandler):
 
     def do_POST(self):
@@ -223,3 +234,6 @@ print(msg)
 logging.info(msg)
 server_thread = Thread(target=run_server)
 server_thread.start()
+log_flush_thread = Thread(target=log_flush_runnable)
+log_flush_thread.start()
+
