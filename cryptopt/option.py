@@ -24,7 +24,7 @@ class Option:
         if not option_type == 'call' and not option_type == 'put':
             raise ValueError('Expected "call" or "put", got ' + option_type)
         self.option_type = option_type
-        self.strike = strike
+        self.strike = int(strike)
         self.expiry = expiry
         self.interest_rate = interest_rate
         if volatility is not None:
