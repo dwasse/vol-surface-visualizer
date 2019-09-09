@@ -52,7 +52,6 @@ reverseNumberSort = function(a, b) {
 
 function sendDataPOST(requestData) {
   return new Promise(function(resolve, reject) {
-    console.log("sending POST data: " + JSON.stringify(requestData));
     var data = new FormData();
     for (var key in requestData) {
       data.append(key, requestData[key]);
@@ -65,7 +64,6 @@ function sendDataPOST(requestData) {
       var responseData = JSON.parse(request.response);
       console.log(responseData);
       if (responseData["status"] === "SUCCESS") {
-        console.log("Response data success: " + JSON.stringify(responseData));
         resolve(responseData);
       } else {
         reject(responseData);
@@ -83,13 +81,11 @@ async function getOptionData() {
   let responseData = await sendDataPOST(requestData);
   if (responseData["status"] === "SUCCESS") {
     optionData = responseData["data"];
-    console.log("Got option data: " + JSON.stringify(optionData));
     optionsByName = {};
     for (var i = 0; i < optionData.length; i++) {
       option = optionData[i];
-      optionsByName[option["exchange_symbol"]] = option;
+      optionsByName[option["symbol"]] = option;
     }
-    console.log("Updated optionsByName: " + JSON.stringify(optionsByName));
     plotVolSurface();
   }
 }
@@ -103,10 +99,6 @@ function parseOptionData() {
   maxVol = parseFloat(document.getElementById("maxVol").value);
   minDays = parseFloat(document.getElementById("minDays").value);
   maxDays = parseFloat(document.getElementById("maxDays").value);
-  // console.log("Min delta: " + minDelta + ", max delta: " + maxDelta
-  // 	+ ", min strike: " + minStrike + ", max strike: " + maxStrike
-  // 	+ ", min vol: " + minVol + ", max vol: " + maxVol
-  // 	+ ", min days: " + minDays + ", max days: " + maxDays);
   callTimes = [];
   callDeltas = [];
   callVols = {};
@@ -118,7 +110,12 @@ function parseOptionData() {
 
   for (var key in optionsByName) {
     data = optionsByName[key];
-    var expiryParts = data["expiry"].split("-");
+    var expiryParts;
+    if (data["expiry"].includes(" ")) {
+      expiryParts = data["expiry"].split(" ")[0].split("-");
+    } else {
+      var expiryParts = data["expiry"].split("-");
+    }
     var date = new Date(expiryParts[0], expiryParts[1] - 1, expiryParts[2]);
     var days = (date.getTime() - currentTimestamp) / (86400 * 1000);
     var delta = parseFloat(data["delta"]);
@@ -147,9 +144,7 @@ function parseOptionData() {
           callVols[days][delta] = vol;
         }
       } else if (delta < 0) {
-        console.log("Adding delta for option: " + key + ": " + delta);
         putDeltas.unshift(delta);
-        console.log("Adding strike for option: " + key + ": " + strike);
         putStrikes.unshift(strike);
         putTimes.unshift(days);
         if (!(days in putVols)) {
@@ -244,23 +239,11 @@ function getVolByStrike(strike, delta, time) {
       }
     }
   }
-  console.log(
-    "Got vol with strike " +
-      strike +
-      ", delta " +
-      delta +
-      ", time " +
-      time +
-      ", vol " +
-      vol
-  );
   return vol;
 }
 
 function plotVolSurface(update = false) {
-  console.log("Parsing option data");
   parseOptionData();
-  console.log("Plotting vol surface");
   var xAxisName;
   var xCallData;
   var xPutData;
@@ -268,20 +251,12 @@ function plotVolSurface(update = false) {
     xAxisName = "Strike";
     xCallData = callStrikes;
     xPutData = putStrikes;
-    console.log("Plotting in strike view");
   } else {
     xAxisName = "Delta";
     xCallData = callDeltas;
     xPutData = putDeltas;
-    console.log("Plotting in delta view");
   }
   callGraphData = new vis.DataSet();
-  console.log(
-    "Num call strikes: " +
-      callStrikes.length +
-      ", num call deltas: " +
-      callDeltas.length
-  );
   for (i = 0; i < callDeltas.length; i++) {
     var delta = callDeltas[i];
     var xData = xCallData[i];
@@ -314,7 +289,7 @@ function plotVolSurface(update = false) {
     yLabel: "Days to Expiration",
     zLabel: "Volatility",
     zValueLabel: function(z) {
-      return parseInt(z * 100) + "%";
+      return parseInt(z) + "%";
     }
   };
   putGraphData = new vis.DataSet();
@@ -350,7 +325,7 @@ function plotVolSurface(update = false) {
     yLabel: "Days to Expiration",
     zLabel: "Volatility",
     zValueLabel: function(z) {
-      return parseInt(z * 100) + "%";
+      return parseInt(z) + "%";
     }
   };
   if (update) {
@@ -373,7 +348,6 @@ function plotVolSurface(update = false) {
 function refresh(e) {
   var code = e.keyCode ? e.keyCode : e.which;
   if (code == 13) {
-    console.log("Enter press detected, searching...");
     parseOptionData();
     plotVolSurface(true);
   }
@@ -386,12 +360,10 @@ function switchViews() {
   } else {
     strikeView = false;
   }
-  console.log("Switched strikeView: " + strikeView);
   plotVolSurface();
 }
 
 function switchLiveData() {
-  console.log("Switching live data...");
   var liveDataSwitch = document.getElementById("liveDataSwitch");
   if (liveDataSwitch.checked) {
     connectLiveData();
@@ -402,22 +374,11 @@ function switchLiveData() {
 
 function processOptionUpdate(dataString) {
   var data = JSON.parse(dataString);
-  if (data["exchange_symbol"].includes(currency)) {
-    optionsByName[data["exchange_symbol"]] = data;
-    console.log(
-      "Number of options by name before parse: " +
-        Object.keys(optionsByName).length
-    );
+  if (data["Symbol"].includes(currency)) {
+    optionsByName[data["Symbol"]] = data;
     parseOptionData();
-    console.log(
-      "Number of options by name after parse: " +
-        Object.keys(optionsByName).length
-    );
     plotVolSurface(true);
   } else {
-    console.log(
-      "Option update data does not match currency: " + JSON.stringify(data)
-    );
   }
 }
 
@@ -425,7 +386,6 @@ var socket = null;
 var isopen = false;
 
 function connectLiveData() {
-  console.log("Updating via REST...");
   getOptionData();
   console.log("Connecting websocket...");
   socket = new WebSocket("ws://" + websocketIp + ":" + websocketPort);
@@ -459,7 +419,6 @@ function connectLiveData() {
       for (var i = 0; i < arr.length; i++) {
         hex += ("00" + arr[i].toString(16)).substr(-2);
       }
-      console.log("Binary message received: " + hex);
     }
   };
 

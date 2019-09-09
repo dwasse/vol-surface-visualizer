@@ -12,6 +12,11 @@ logging.info("Starting log at " + time.ctime() + "...")
 delimiter = '/'
 data_path = os.getcwd() + delimiter + 'optionData' + delimiter
 
+# db
+user = "user"
+password = "password"
+database = "volsurface"
+
 pairs = ["BTC/USD", "ETH/USD"]
 data_pull_freq = 60
 load_data = True

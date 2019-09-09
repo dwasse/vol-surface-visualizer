@@ -9,12 +9,14 @@ from .deribitREST import DeribitREST
 
 class TheoEngine:
     def __init__(self, underlying_pair,
+                 db,
                  underlying_price=None,
                  expirations=[],
                  strikes={},
                  atm_volatility=0.5,
                  interest_rate=0):
         self.underlying_pair = underlying_pair
+        self.db = db
         self.underlying_price = underlying_price
         self.expirations = expirations
         self.strikes = {e: strikes for e in self.expirations}
@@ -26,6 +28,7 @@ class TheoEngine:
             'call': {},
             'put': {}
         }
+        self.exchange_symbols = []
         self.options_by_name = {}
         self.underlying_exchange_symbol = self.get_exchange_symbol(pair=self.underlying_pair)
         self.client = None
@@ -56,6 +59,12 @@ class TheoEngine:
         if pair == "ETH/USD":
             return "ETH-PERPETUAL"
         return None
+
+    def get_exchange_symbols(self):
+        if not self.exchange_symbols:
+            for option in self.iterate_options():
+                self.exchange_symbols.append(option.exchange_symbol)
+        return self.exchange_symbols
 
     def get_underlying_price(self):
         orderbook = self.client.getorderbook(self.underlying_exchange_symbol)
@@ -147,9 +156,18 @@ class TheoEngine:
                     option = self.options[option_type][expiry][strike]
                     option.calc_wvega(atm_vega)
 
+    def persist_orderbooks(self):
+        for option in self.iterate_options():
+            orderbook_result = self.client.getorderbook(option.exchange_symbol)
+            self.db.insert_snapshot(orderbook_result, option)
+            logging.info("Persisted orderbook for option " + option.exchange_symbol)
+
     def build_deribit_options(self):
         if self.client is None:
             self.setup_client()
+        self.options_by_name = {}
+        self.expirations = []
+        self.strikes = {}
         instruments = [i for i in self.client.getinstruments() if i['baseCurrency'] == self.currency]
         options = [i for i in instruments if i['kind'] == 'option']
         for option_info in options:

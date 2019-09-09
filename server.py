@@ -5,6 +5,7 @@ from volWebsocket import VolWebsocket
 from autobahn.twisted.websocket import WebSocketServerFactory
 from twisted.internet import reactor
 from cryptopt.deribitWebsocket import DeribitWebsocket
+from databaseController import DatabaseController
 import config
 import logging
 import time
@@ -15,12 +16,6 @@ import ast
 import os
 import sys
 import traceback
-
-
-if not os.path.exists(config.data_path):
-    print("Creating data directory: " + config.data_path)
-    os.makedirs(config.data_path)
-    config.load_data = False
 
 
 def flush_logs():
@@ -37,7 +32,8 @@ def log_flush_runnable():
 class Server(SimpleHTTPRequestHandler):
 
     def do_POST(self):
-        content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
+        # <--- Gets the size of data
+        content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length).decode('utf-8')
         fields = urllib.parse.parse_qs(post_data)
         raw_messages = str(fields[' name']).split("'")
@@ -74,10 +70,11 @@ class Server(SimpleHTTPRequestHandler):
             pair = data['pair']
             response_data = {
                 'status': 'SUCCESS',
-                'data': compress_data(load_last_data(pair))
+                'data': compress_data(load_last_data(theo_engines[pair]))
             }
             self.send_post_response(response_data)
-            logging.info("Sent response with data: " + json.dumps(response_data))
+            logging.info("Sent response with data: " +
+                         json.dumps(response_data))
 
     def send_post_response(self, response_data):
         self.send_response(200)
@@ -110,7 +107,8 @@ def save_data(pair):
     for option in theo_engines[pair].iterate_options():
         option_name = str(int(option.strike)) + "_" + option.option_type
         expiry = str(option.expiry)[:10]
-        print("Saving data for option: " + option_name + " with expiry: " + expiry)
+        print("Saving data for option: " +
+              option_name + " with expiry: " + expiry)
         full_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
             + config.delimiter + today + config.delimiter + expiry + config.delimiter
         temp_data_path = config.data_path + theo_engines[pair].underlying_pair.replace('/', '-') \
@@ -126,6 +124,14 @@ def save_data(pair):
             outfile.write(str(savable_data) + ', ')
         with open(temp_data_path + option_name + ".json", 'w+') as outfile:
             outfile.write(str(savable_data) + ', ')
+
+
+def load_last_data(theo_engine):
+    option_symbols = theo_engine.get_exchange_symbols()
+    data = []
+    for symbol in option_symbols:
+        data.append(theo_engine.db.get_last_snapshot(symbol)[0])
+    return data
 
 
 def theo_engine_runnable():
@@ -145,12 +151,12 @@ def pull_and_save(pair):
     try:
         logging.info("Building options...")
         theo_engines[pair].build_deribit_options()
-        logging.info("Calculating vols...")
-        theo_engines[pair].calc_deribit_implied_vols()
-        logging.info("Calculating greeks...")
-        theo_engines[pair].calc_all_greeks()
+        # logging.info("Calculating vols...")
+        # theo_engines[pair].calc_deribit_implied_vols()
+        # logging.info("Calculating greeks...")
+        # theo_engines[pair].calc_all_greeks()
         logging.info("Saving data...")
-        save_data(pair)
+        theo_engines[pair].persist_orderbooks()
     except Exception as e:
         logging.error("Exception pulling and saving data: " + str(e))
         type_, value_, traceback_ = sys.exc_info()
@@ -159,67 +165,31 @@ def pull_and_save(pair):
         logging.error('Traceback: ' + str(traceback.format_exc()))
 
 
-def get_immediate_subdirectories(a_dir):
-    return [name for name in os.listdir(a_dir)
-            if os.path.isdir(os.path.join(a_dir, name))]
-
-
-def load_last_data(pair_to_load):
-    print("Loading last data for " + pair_to_load)
-    global theo_engine
-    options = []
-    pairs = get_immediate_subdirectories(config.data_path)
-    print("Loaded subdirectory pairs: " + str(pairs))
-    for pair in pairs:
-        if pair.replace('-', '/') == pair_to_load:
-            print("Found directory for " + pair)
-            expirys = get_immediate_subdirectories(config.data_path + pair + config.delimiter + "currentData")
-            for expiry in expirys:
-                [year, month, day] = expiry.split('-')
-                expiry_datetime = datetime.datetime(year=int(year), month=int(month), day=int(day))
-                if expiry_datetime > datetime.datetime.now():
-                    file_path = config.data_path + pair + config.delimiter + "currentData" + config.delimiter + expiry
-                    files = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
-                    for file in files:
-                        with open(file_path + config.delimiter + file, 'r') as data_file:
-                            try:
-                                options.append(ast.literal_eval(data_file.read())[-1])
-                            except Exception as e:
-                                print("Exception loading data for file: " + file + ": " + str(e))
-                else:
-                    print("Stale expiry: " + str(expiry))
-            print("Loaded option data with timestamp: " + str(options[-1]['timestamp']))
-    theo_engines[pair_to_load].parse_option_metadata(options)
-    msg = "Parsed option metadata for " + pair_to_load
-    print(msg)
-    logging.info(msg)
-    return options
-
-
 def compress_data(data):
     compressed_data = []
     for entry in data:
         compressed_entry = {}
         for element in entry:
+            entry[element] = str(entry[element])
             if entry[element].replace('.', '', 1).isdigit() or 'e-' in entry[element]:
-                compressed_entry[element] = round(float(entry[element]), config.num_decimals)
+                compressed_entry[element] = round(
+                    float(entry[element]), config.num_decimals)
             else:
                 compressed_entry[element] = entry[element]
         compressed_data.append(compressed_entry)
     return compressed_data
 
 
+db = DatabaseController()
 pairs = config.pairs
 theo_engines = {}
 theo_engine_threads = {}
 for pair in pairs:
-    theo_engines[pair] = TheoEngine(pair)
+    theo_engines[pair] = TheoEngine(pair, db)
     raw_option_data = []
     if config.load_data:
-        raw_option_data = load_last_data(pair)
-        msg = "Loaded raw option data for " + pair + ": " + json.dumps(raw_option_data)
-        # print(msg)
-        logging.info(msg)
+        theo_engines[pair].build_deribit_options()
+        data = load_last_data(theo_engines[pair])
     else:
         msg = "Pulling data from API and saving..."
         print(msg)
@@ -236,4 +206,3 @@ server_thread = Thread(target=run_server)
 server_thread.start()
 log_flush_thread = Thread(target=log_flush_runnable)
 log_flush_thread.start()
-
