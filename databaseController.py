@@ -100,7 +100,7 @@ class DatabaseController:
 
     def get_last_snapshot(self, symbol):
         query = '''
-        SELECT Symbol, Timestamp, Strike, Expiry, Delta, Vol
+        SELECT Symbol, Strike, Expiry, Delta, Vol
         FROM OrderbookSnapshots
         WHERE Symbol='%s'
         ORDER BY ID DESC LIMIT 1
