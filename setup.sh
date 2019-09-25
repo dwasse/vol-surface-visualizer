@@ -1,4 +1,7 @@
 sudo apt-get update
+sudo apt-get -y install npm
+sudo apt-get -y install python3.6
+sudo npm install
 sudo apt-get -y install postgresql
 sudo apt-get -y install python-psycopg2
 sudo apt-get -y install libpq-dev
