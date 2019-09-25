@@ -32,7 +32,6 @@ def log_flush_runnable():
 class Server(SimpleHTTPRequestHandler):
 
     def do_POST(self):
-        # <--- Gets the size of data
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length).decode('utf-8')
         fields = urllib.parse.parse_qs(post_data)
@@ -57,12 +56,16 @@ class Server(SimpleHTTPRequestHandler):
         self.process_data(data)
 
     def do_GET(self):
+        print("Doing GET...")
         f = self.send_head()
         if f:
             try:
+                print("Copying file...")
                 self.copyfile(f, self.wfile)
+                print("Copied file")
             finally:
                 f.close()
+                print("Closed connection")
 
     def process_data(self, data):
         logging.info("Processing data: " + json.dumps(data))
@@ -151,6 +154,7 @@ def pull_and_save(pair):
     try:
         logging.info("Building options...")
         theo_engines[pair].build_deribit_options()
+        # For local greek calculation:
         # logging.info("Calculating vols...")
         # theo_engines[pair].calc_deribit_implied_vols()
         # logging.info("Calculating greeks...")
@@ -184,6 +188,13 @@ db = DatabaseController()
 pairs = config.pairs
 theo_engines = {}
 theo_engine_threads = {}
+
+msg = "Running server..."
+print(msg)
+logging.info(msg)
+server_thread = Thread(target=run_server)
+server_thread.start()
+
 for pair in pairs:
     theo_engines[pair] = TheoEngine(pair, db)
     raw_option_data = []
@@ -199,10 +210,5 @@ for pair in pairs:
 theo_engine_thread = Thread(target=theo_engine_runnable)
 theo_engine_thread.start()
 
-msg = "Running server..."
-print(msg)
-logging.info(msg)
-server_thread = Thread(target=run_server)
-server_thread.start()
 log_flush_thread = Thread(target=log_flush_runnable)
 log_flush_thread.start()
