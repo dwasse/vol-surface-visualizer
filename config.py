@@ -19,9 +19,7 @@ database = "volsurface"
 
 pairs = ["BTC/USD", "ETH/USD"]
 data_pull_freq = 60
-load_data = True
-websockets = True
+load_data = False 
 num_decimals = 3
 port = 8000
 ip = "127.0.0.1"
-websocket_port = 9000

@@ -1,10 +1,6 @@
 from httpServer import SimpleHTTPRequestHandler, HTTPServer
 from cryptopt.theoEngine import TheoEngine
 from threading import Thread
-from volWebsocket import VolWebsocket
-from autobahn.twisted.websocket import WebSocketServerFactory
-from twisted.internet import reactor
-from cryptopt.deribitWebsocket import DeribitWebsocket
 from databaseController import DatabaseController
 import config
 import logging
