@@ -8,16 +8,18 @@ CREATE USER "vol_admin" WITH ENCRYPTED PASSWORD 'password';
 CREATE TABLE IF NOT EXISTS contract_summaries(
     id SERIAL PRIMARY KEY,
     symbol TEXT NOT NULL,
+    underlying_symbol TEXT NOT NULL,
     timestamp BIGINT NOT NULL,
     vol DOUBLE PRECISION,
     bid_vol DOUBLE PRECISION,
     ask_vol DOUBLE PRECISION,
-    strike INT,
-    expiry TIMESTAMP,
+    strike DOUBLE PRECISION,
+    expiry BIGINT,
     delta DOUBLE PRECISION,
     gamma DOUBLE PRECISION,
     vega DOUBLE PRECISION,
-    theta DOUBLE PRECISION
+    theta DOUBLE PRECISION,
+    sequence_number bigint
 );
 
 GRANT ALL PRIVILEGES ON TABLE contract_summaries TO vol_admin;

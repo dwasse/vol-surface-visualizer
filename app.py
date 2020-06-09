@@ -1,35 +1,51 @@
 from flask import Flask
+from flask import jsonify
 from flask_api import status
+from flask import render_template
 from db import DatabaseController
+
+
+SUPPORTED_SYMBOLS = ['BTCUSD', 'ETHUSD']
 
 
 db = DatabaseController()
 app = Flask(__name__)
 
 
+@app.route('/')
+def home():
+    print("LOAD HOME")
+    return render_template('home.html')
+
+@app.route('/<symbol>')
+def surface(symbol):
+    print("LOAD VOL SURFACE WITH SYMBOL %s " % symbol)
+    return render_template('surface.html', symbol=symbol)
+
+
 @app.route('/api/vol_data/<symbol>', methods=['GET'])
 def vol_data(symbol):
-    print("INSERT VOL DATA FOR %s " % symbol))
-    snapshot=db.execute("SELECT * ")
-    return status.HTTP_200_OK
+    print("GET VOL DATA FOR %s" % symbol)
+    if symbol not in SUPPORTED_SYMBOLS:
+        print("Got unsupported symbol: %s" % symbol)
+        return status.HTTP_404
+    query = '''
+        SELECT symbol, strike, expiry, vol, delta, gamma, theta, vega 
+        FROM contract_summaries 
+        WHERE sequence_number = 
+            (
+                SELECT MAX(sequence_number) 
+                FROM contract_summaries
+                WHERE underlying_symbol = '%s'
+            )
+        AND underlying_symbol = '%s';
+    ''' % (symbol, symbol)
+    print("Query: " + query)
+    snapshot=db.execute(query).fetchall()
+    print("Got snapshot: %s" % str(snapshot))
+    if snapshot is not None:
+        return jsonify({'data': snapshot})
+    return status.HTTP_404
 
-def get_last_vol_data(theo_engine):
-    option_symbols=theo_engine.get_exchange_symbols()
-    data=[]
-    for symbol in option_symbols:
-        data.append(theo_engine.db.get_last_snapshot(symbol)[0])
-    return dat
-
-def process_data(data):
-        logging.info("Processing data: " + json.dumps(data))
-        if data['action'] == 'getOptionData':
-            pair=data['pair']
-            response_data={
-                'status': 'SUCCESS',
-                'data': compress_data(load_last_data(theo_engines[pair]))
-            }
-            self.send_post_response(response_data)
-            logging.info("Sent response with data: " +
-                         json.dumps(response_data))
-        
-
+if __name__ == "__main__":
+    app.run(debug=True)

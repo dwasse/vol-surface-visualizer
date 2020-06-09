@@ -29,25 +29,27 @@ class Collector:
                 instruments = [i for i in self.client.getinstruments(
                 ) if i['baseCurrency'] == currency]
                 options = [i for i in instruments if i['kind'] == 'option']
-                symbols = [o['instrumentName'] for o in options]
+                symbols.extend([o['instrumentName'] for o in options])
         else:
             raise Exception("Exchange %s not recognized" % self.exchange)
         return symbols
 
-    def process_orderbook(self, symbol):
+    def process_orderbook(self, symbol, sequence_num=0):
         if self.exchange == 'deribit':
             orderbook_result = self.client.getorderbook(instrument=symbol)
-            self.db.insert_snapshot(orderbook_result)
+            self.db.insert_snapshot(orderbook_result, sequence_num=sequence_num)
         else:
             raise Exception("Exchange %s not recognized" % self.exchange)
 
     def collect(self):
+        sequence_num = self.db.get_sequence_number() + 1
         while True:
             last_insert = time.time()
             symbols = self.get_symbols()
             for symbol in symbols:
-                self.process_orderbook(symbol)
+                self.process_orderbook(symbol, sequence_num=sequence_num)
             print("Processed %s orderbooks." % str(len(symbols)))
+            sequence_num += 1
             pause = max((last_insert + INSERT_FREQ) - time.time(), 0)
             time.sleep(pause)
 

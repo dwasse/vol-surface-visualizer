@@ -3,6 +3,7 @@ import config
 import logging
 import sys
 import traceback
+import utils
 import os
 
 
@@ -41,8 +42,7 @@ class DatabaseController:
         self.database = database
         self.connection = None
         if reset:
-            self.reset_db()
-        else:
+            # self.reset_db()
             self.setup_db()
         self.connect()
 
@@ -85,15 +85,24 @@ class DatabaseController:
             self.connection.rollback()
         return cursor
 
-    def insert_snapshot(self, data):
+    def insert_snapshot(self, data, sequence_num=0):
         try:
+            symbol = data['instrument']
+            underlying_symbol = utils.get_underlying_symbol(symbol)
+            bid_vol = data['bidIv']
+            ask_vol = data['askIv']
+            vol = utils.get_mid_market(float(bid_vol), float(ask_vol))
+            strike = utils.get_strike(symbol)
+            expiry = utils.get_expiry(symbol)
+            if 'BTC' in symbol:
+                underlying_symbol = 'BTCUSD'
             query = '''INSERT INTO contract_summaries
-            (symbol, timestamp, bid_vol, ask_vol, delta, gamma, vega, theta) 
-            VALUES(%s, %s, %s, %s, %s, %s, %s, %s);''' % \
-                    (quote(data['instrument']), quote(data['tstamp']),
-                        quote(data['bidIv']), quote(data['askIv']), quote(
+            (symbol, underlying_symbol, timestamp, strike, expiry, vol, bid_vol, ask_vol, delta, gamma, vega, theta, sequence_number) 
+            VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);''' % \
+                    (quote(symbol), quote(underlying_symbol), quote(data['tstamp']), quote(strike), quote(expiry),
+                        quote(vol), quote(bid_vol), quote(ask_vol), quote(
                             data['delta']), quote(data['gamma']),
-                        quote(data['vega']), quote(data['theta']))
+                        quote(data['vega']), quote(data['theta']), quote(sequence_num))
             self.execute(query)
         except Exception as e:
             msg = "Error inserting contract summary: " + \
@@ -114,6 +123,18 @@ class DatabaseController:
                 str(e) + ", data: " + str(data)
             print(msg)
             logging.error(msg)
+
+    def get_sequence_number(self, underlying_symbol='BTCUSD'):
+        query = '''
+            SELECT MAX(sequence_number)
+            FROM contract_summaries
+            WHERE underlying_symbol = '%s';
+        ''' % underlying_symbol
+        raw_data = self.execute(query).fetchall()[0][0]
+        print("Sequence number raw data: %s" % str(raw_data))
+        if raw_data is None:
+            return 0
+        return raw_data
 
     def get_last_contract_summary(self, symbol):
         query = '''

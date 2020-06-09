@@ -1,8 +1,6 @@
-var websocketIp = "127.0.0.1";
-var websocketPort = "9000";
-var pair = document.currentScript.getAttribute("pair");
-var currency = pair.split("/")[0];
-console.log("Got pair " + pair + ", currency " + currency);
+var symbol = document.currentScript.getAttribute("symbol");
+var currency = symbol.split("/")[0];
+console.log("Got symbol " + symbol + ", currency " + currency);
 var optionData = {};
 var optionsByName = {};
 var minDelta = parseFloat(document.getElementById("minDelta").value);
@@ -41,6 +39,7 @@ var putGraphData = null;
 var strikeView = false;
 var liveData = false;
 var currentTimestamp = new Date().getTime();
+const cols = ['symbol', 'strike', 'expiry', 'vol', 'delta', 'gamma', 'theta', 'vega']
 
 numberSort = function(a, b) {
   return a - b;
@@ -50,45 +49,36 @@ reverseNumberSort = function(a, b) {
   return b - a;
 };
 
-function sendDataPOST(requestData) {
-  return new Promise(function(resolve, reject) {
-    var data = new FormData();
-    for (var key in requestData) {
-      data.append(key, requestData[key]);
+function httpGetAsync(theUrl, callback)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
     }
-    var request = new XMLHttpRequest();
-    var url = window.location.href;
-    request.open("POST", url, true);
-    request.responseType = "text";
-    request.onload = async function() {
-      var responseData = JSON.parse(request.response);
-      console.log(responseData);
-      if (responseData["status"] === "SUCCESS") {
-        resolve(responseData);
-      } else {
-        reject(responseData);
-      }
-    };
-    request.send(data);
-  });
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
 }
 
 async function getOptionData() {
-  let requestData = {
-    action: "getOptionData",
-    pair: pair
-  };
-  let responseData = await sendDataPOST(requestData);
-  if (responseData["status"] === "SUCCESS") {
-    optionData = responseData["data"];
+  var url = "http://localhost:5000/api/vol_data/" + symbol
+  console.log("Got url: " + url)
+  httpGetAsync(url, function(data){
+    console.log("Got vol data: " + JSON.stringify(data));
+    var jsonData = JSON.parse(data)
+    optionData = jsonData["data"];
+    console.log("Option data: " + JSON.stringify(optionData));
     optionsByName = {};
     for (var i = 0; i < optionData.length; i++) {
       option = optionData[i];
-      optionsByName[option["symbol"]] = option;
+      symbol = option[cols.indexOf("symbol")]
+      console.log("Got symbol:  " + symbol)
+      optionsByName[symbol] = option;
     }
     plotVolSurface();
-  }
+  })
 }
+
 
 function parseOptionData() {
   minDelta = parseFloat(document.getElementById("minDelta").value);
@@ -110,17 +100,18 @@ function parseOptionData() {
 
   for (var key in optionsByName) {
     data = optionsByName[key];
-    var expiryParts;
-    if (data["expiry"].includes(" ")) {
-      expiryParts = data["expiry"].split(" ")[0].split("-");
-    } else {
-      var expiryParts = data["expiry"].split("-");
-    }
-    var date = new Date(expiryParts[0], expiryParts[1] - 1, expiryParts[2]);
-    var days = (date.getTime() - currentTimestamp) / (86400 * 1000);
-    var delta = parseFloat(data["delta"]);
-    var vol = parseFloat(data["vol"]);
-    var strike = parseInt(data["strike"]);
+    expiry = parseInt(data[cols.indexOf("expiry")])
+    delta = parseFloat(data[cols.indexOf("delta")])
+    vol = parseFloat(data[cols.indexOf("vol")]) 
+    strike = parseFloat(data[cols.indexOf("strike")])
+    gamma = parseFloat(data[cols.indexOf("gamma")])
+    theta = parseFloat(data[cols.indexOf("theta")])
+    vega = parseFloat(data[cols.indexOf("vega")])
+    console.log("Data: " + data)
+    console.log("Delta: " + delta)
+    console.log("Vol: " + vol)
+    var days = (expiry - currentTimestamp) / (86400 * 1000);
+    console.log("Days: " + days)
     if (
       vol > minVol &&
       vol < maxVol &&
@@ -164,6 +155,9 @@ function parseOptionData() {
   putDeltas.sort(reverseNumberSort);
   putStrikes.sort(reverseNumberSort);
   putTimes.sort(numberSort);
+  console.log("Call deltas: " + callDeltas)
+  console.log("call strikes: " + callStrikes)
+  console.log("Call vols: " + callVols)
 }
 
 function unpack(rows, key) {
@@ -340,6 +334,7 @@ function plotVolSurface(update = false) {
       console.log("Error plotting put graph: " + err.message);
     }
   } else {
+    console.log("Call graph data: " + JSON.stringify(callGraphData));
     callGraph = new vis.Graph3d(callContainer, callGraphData, options);
     putGraph = new vis.Graph3d(putContainer, putGraphData, options);
   }
@@ -363,98 +358,5 @@ function switchViews() {
   plotVolSurface();
 }
 
-function switchLiveData() {
-  var liveDataSwitch = document.getElementById("liveDataSwitch");
-  if (liveDataSwitch.checked) {
-    connectLiveData();
-  } else {
-    disconnectLiveData();
-  }
-}
-
-function processOptionUpdate(dataString) {
-  var data = JSON.parse(dataString);
-  if (data["Symbol"].includes(currency)) {
-    optionsByName[data["Symbol"]] = data;
-    parseOptionData();
-    plotVolSurface(true);
-  } else {
-  }
-}
-
-var socket = null;
-var isopen = false;
-
-function connectLiveData() {
-  getOptionData();
-  console.log("Connecting websocket...");
-  socket = new WebSocket("ws://" + websocketIp + ":" + websocketPort);
-  socket.binaryType = "arraybuffer";
-
-  socket.onopen = function() {
-    console.log("Connected to " + websocketIp + ":" + websocketPort + "!");
-    isopen = true;
-    socket.send(
-      JSON.stringify({
-        action: "subscribe",
-        currency: currency
-      })
-    );
-    console.log(
-      "Sent subscription request: " +
-        JSON.stringify({
-          action: "subscribe",
-          currency: currency
-        })
-    );
-  };
-
-  socket.onmessage = function(e) {
-    if (typeof e.data == "string") {
-      console.log("Received option update: " + e.data);
-      processOptionUpdate(e.data);
-    } else {
-      var arr = new Uint8Array(e.data);
-      var hex = "";
-      for (var i = 0; i < arr.length; i++) {
-        hex += ("00" + arr[i].toString(16)).substr(-2);
-      }
-    }
-  };
-
-  socket.onclose = function(e) {
-    console.log("Connection closed.");
-    socket = null;
-    isopen = false;
-  };
-}
-
-function disconnectLiveData() {
-  console.log("Closing websocket...");
-  if (socket) {
-    socket.close();
-  }
-}
-
-function sendText() {
-  if (isopen) {
-    socket.send("Hello, world!");
-    console.log("Text message sent.");
-  } else {
-    console.log("Connection not opened.");
-  }
-}
-
-function sendBinary() {
-  if (isopen) {
-    var buf = new ArrayBuffer(32);
-    var arr = new Uint8Array(buf);
-    for (i = 0; i < arr.length; ++i) arr[i] = i;
-    socket.send(buf);
-    console.log("Binary message sent.");
-  } else {
-    console.log("Connection not opened.");
-  }
-}
 
 getOptionData();
